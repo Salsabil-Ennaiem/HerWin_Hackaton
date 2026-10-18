@@ -1,16 +1,13 @@
 const KEY = "herwin:lastResult";
-const TOKEN_KEY = "herwin:token";
+const GUEST_ID_KEY = "herwin:guestId";
 
-export function getToken() {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
+export function getGuestId() {
+  let guestId = localStorage.getItem(GUEST_ID_KEY);
+  if (!guestId) {
+    guestId = crypto.randomUUID();
+    localStorage.setItem(GUEST_ID_KEY, guestId);
   }
-}
-
-export function setToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
+  return guestId;
 }
 
 export function saveResult(result) {
@@ -27,10 +24,4 @@ export function loadResult() {
 
 export function clearResult() {
   sessionStorage.removeItem(KEY);
-}
-
-export function logout() {
-  localStorage.removeItem(TOKEN_KEY);
-  clearResult();
-  window.location.reload();
 }

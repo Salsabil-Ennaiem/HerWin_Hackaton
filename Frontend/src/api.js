@@ -1,21 +1,12 @@
 import axios from "axios";
-import { getToken, logout } from "./store";
+import { getGuestId } from "./store";
 
 export const api = axios.create({ baseURL: "/api", timeout: 60000 });
 
 api.interceptors.request.use((config) => {
-  const token = getToken();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  config.headers["X-Guest-ID"] = getGuestId();
   return config;
 });
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) logout();
-    return Promise.reject(error);
-  },
-);
 
 export const postJournal = (formData) => api.post("/journal", formData).then((r) => r.data);
 export const getJournal = () => api.get("/journal").then((r) => r.data);

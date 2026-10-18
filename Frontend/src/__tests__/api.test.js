@@ -1,10 +1,10 @@
 import { api, getDashboard } from "../api";
-import { setToken } from "../store";
+import { getGuestId } from "../store";
 
-describe("authenticated API client", () => {
-  it("sends the Google ID token as a bearer credential", async () => {
+describe("anonymous API client", () => {
+  it("sends the browser guest ID with API requests", async () => {
     let request;
-    setToken("google-id-token");
+    const guestId = getGuestId();
     api.defaults.adapter = async (config) => {
       request = config;
       return {
@@ -18,6 +18,6 @@ describe("authenticated API client", () => {
 
     await getDashboard();
 
-    expect(request.headers.Authorization).toBe("Bearer google-id-token");
+    expect(request.headers["X-Guest-ID"]).toBe(guestId);
   });
 });

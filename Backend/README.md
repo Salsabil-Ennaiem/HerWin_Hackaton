@@ -31,10 +31,9 @@ Project root
 create the main.py file under src\backend\ 
 run it with : uv run uvicorn backend.main:app --reload --port 8000
 
-Google sign-in requires `GOOGLE_CLIENT_ID` in `Backend/.env`. Use the same
-Google OAuth Web client ID as `Frontend/.env` (`VITE_GOOGLE_CLIENT_ID`).
-Register `http://localhost:5173` and `http://localhost:3000` as authorized
-JavaScript origins in Google Cloud Console.
+The app runs without sign-in. Each browser sends a generated guest ID so its
+data stays separate from other browsers; this is for local/demo use and is not
+a replacement for authentication in a publicly deployed app.
 
 
 for the front on u'r root project npm create vite@latest Frontend -- --template react 

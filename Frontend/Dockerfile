@@ -14,10 +14,6 @@ RUN npm ci
 # Copy the rest of the code
 COPY . .
 
-# Google OAuth client ID is public and embedded in the frontend bundle.
-ARG VITE_GOOGLE_CLIENT_ID
-ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
-
 # Build the production version
 RUN npm run build
 

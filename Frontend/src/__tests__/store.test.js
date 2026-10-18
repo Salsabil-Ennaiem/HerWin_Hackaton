@@ -1,4 +1,4 @@
-import { clearResult, getToken, loadResult, saveResult, setToken } from "../store";
+import { clearResult, getGuestId, loadResult, saveResult } from "../store";
 import { mockResult } from "../test/fixtures";
 
 describe("store", () => {
@@ -22,12 +22,11 @@ describe("store", () => {
     expect(loadResult()).toBeNull();
   });
 
-  it("enregistre et relit le jeton d'authentification", () => {
-    setToken("google-id-token");
-    expect(getToken()).toBe("google-id-token");
-  });
-
-  it("retourne null quand aucun jeton n'est enregistré", () => {
-    expect(getToken()).toBeNull();
+  it("crée et conserve un identifiant invité par navigateur", () => {
+    const guestId = getGuestId();
+    expect(guestId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    expect(getGuestId()).toBe(guestId);
   });
 });
