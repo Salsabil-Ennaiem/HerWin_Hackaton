@@ -6,6 +6,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.143.3",
+        "icalendar>=7.3.0",
+    "python-dotenv>=1.2.4",
+    "python-multipart>=0.0.32",
     "sqlmodel>=0.0.48",
 ]
 
