@@ -1,42 +1,49 @@
-import { useReactMediaRecorder } from "react-media-recorder";
+import { useEffect, useRef, useState } from "react";
 
-export default function VoiceRecorder({ onRecorded, onClear }) {
-  const { status, startRecording, stopRecording, mediaBlobUrl, clearBlobUrl, error } =
-    useReactMediaRecorder({
-      audio: true,
-      onStop: (_url, blob) => onRecorded(blob),
-    });
+export default function VoiceRecorder({ onRecorded }) {
+  const [recording, setRecording] = useState(false);
+  const [url, setUrl] = useState(null);
+  const [error, setError] = useState("");
+  const recRef = useRef(null);
+  const chunks = useRef([]);
 
-  const recording = status === "recording";
+  useEffect(() => () => url && URL.revokeObjectURL(url), [url]);
+
+  const start = async () => {
+    setError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      chunks.current = [];
+      rec.ondataavailable = (e) => e.data.size && chunks.current.push(e.data);
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks.current, { type: rec.mimeType || "audio/webm" });
+        setUrl(URL.createObjectURL(blob));
+        onRecorded(blob);
+      };
+      rec.start();
+      recRef.current = rec;
+      setRecording(true);
+    } catch {
+      setError("Microphone not available. Please type instead.");
+    }
+  };
+
+  const stop = () => {
+    recRef.current?.stop();
+    setRecording(false);
+  };
 
   return (
-    <div className="flex flex-col items-center gap-4 p-6 bg-base-200 rounded-xl">
-      {error && error !== "none" && (
-        <p className="text-error text-sm">Microphone unavailable ({error}). Please type instead.</p>
-      )}
-
-      <button
-        className={`btn btn-circle btn-lg ${recording ? "btn-error animate-pulse" : "btn-primary"}`}
-        onClick={recording ? stopRecording : startRecording}
-        aria-label={recording ? "Stop recording" : "Start recording"}
-      >
-        {recording ? "■" : "●"}
+    <div className="flex flex-col items-center gap-3 py-4">
+      <button type="button" className={`btn btn-circle btn-lg ${recording ? "btn-error animate-pulse" : "btn-primary"}`}
+        onClick={recording ? stop : start}>
+        {recording ? "■" : "🎤"}
       </button>
-      <span className="text-sm opacity-70">
-        {recording ? "Recording… tap to stop" : mediaBlobUrl ? "Recorded" : "Tap to record"}
-      </span>
-
-      {mediaBlobUrl && !recording && (
-        <>
-          <audio src={mediaBlobUrl} controls className="w-full" />
-          <button
-            className="btn btn-sm btn-ghost"
-            onClick={() => { clearBlobUrl(); onClear(); }}
-          >
-            Record again
-          </button>
-        </>
-      )}
+      <p className="text-sm opacity-70">{recording ? "Recording… tap to stop" : "Tap to record (Arabic, French or English)"}</p>
+      {url && <audio controls src={url} className="w-full" />}
+      {error && <p className="text-error text-sm">{error}</p>}
     </div>
   );
 }

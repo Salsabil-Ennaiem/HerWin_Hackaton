@@ -1,41 +1,31 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.db import init_db
-from app.api import journal   # and later profile, calendar, etc.
+from sqlmodel import Session, SQLModel
 
-app = FastAPI(title="HERwin / CalmCampus")
+from app.models import engine, Profile
+from app.routes import router
 
-# Allow React (Frontend) to talk to us
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        if not s.get(Profile, 1):      # GET/PUT /api/profile need row id=1
+            s.add(Profile(id=1))
+            s.commit()
+    yield
+
+
+app = FastAPI(title="HERwin / CalmCampus", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",   # when running with npm run dev
-        "http://localhost:3000",   # when running with Docker
-        ],  # Vite default port
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello from FastAPI Backend!"}
-
-@app.get("/api/health")
-def health():
-    return {"status": "ok"}
-
-
-
-
-
-@app.on_event("startup")
-def on_startup():
-    init_db()
-
-app.include_router(journal.router)
-
-# later:
-# app.include_router(profile.router)
-# app.include_router(calendar.router)
-# ...
+app.include_router(router)   # /api/health lives in routes.py

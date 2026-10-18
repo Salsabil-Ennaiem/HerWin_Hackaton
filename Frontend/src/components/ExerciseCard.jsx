@@ -1,15 +1,25 @@
-export default function ExerciseCard({ exercise }) {
+import { useState } from "react";
+import { completeExercise } from "../api";
+
+export default function ExerciseCard({ exercise, entryId }) {
+  const [done, setDone] = useState(false);
+  const mark = async () => {
+    setDone(true);
+    try { await completeExercise(exercise.id, entryId); } catch { setDone(false); }
+  };
   return (
-    <div className="collapse collapse-arrow bg-base-200">
-      <input type="checkbox" />
-      <div className="collapse-title font-medium">
-        {exercise.title}
-        <span className="badge badge-ghost ml-2">{exercise.minutes} min</span>
-      </div>
-      <div className="collapse-content">
-        <ol className="list-decimal ml-5 space-y-1">
-          {exercise.steps.map((s, i) => <li key={i}>{s}</li>)}
+    <div className="card bg-base-100 shadow-sm">
+      <div className="card-body p-4">
+        <div className="flex justify-between items-start">
+          <h3 className="font-semibold">{exercise.title}</h3>
+          <span className="badge badge-ghost">{exercise.minutes} min</span>
+        </div>
+        <ol className="list-decimal list-inside text-sm space-y-0.5">
+          {exercise.steps.map((s) => <li key={s}>{s}</li>)}
         </ol>
+        <button className="btn btn-sm btn-primary btn-outline mt-2 self-start" disabled={done} onClick={mark}>
+          {done ? "Logged ✓" : "I did this"}
+        </button>
       </div>
     </div>
   );

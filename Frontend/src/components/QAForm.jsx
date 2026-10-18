@@ -1,35 +1,24 @@
 export const QUESTIONS = [
-  "How well did you sleep last night?",
-  "How is your energy level today?",
-  "How worried do you feel about your studies?",
-  "How connected do you feel to people around you?",
-  "How hopeful do you feel about the next few days?",
+  { id: "energy", q: "How is your energy right now?", options: ["Very low", "Low", "OK", "Good", "High"] },
+  { id: "worry", q: "How worried do you feel about your studies?", options: ["Not at all", "A little", "Quite a bit", "Very"] },
+  { id: "sleep", q: "How did you sleep last night?", options: ["Badly", "OK", "Well"] },
+  { id: "support", q: "Do you feel supported today?", options: ["No", "A little", "Yes"] },
+  { id: "body", q: "Any physical tension?", options: ["Yes, strong", "Yes, mild", "No"] },
 ];
-
-const SCALE = ["1", "2", "3", "4", "5"];
 
 export default function QAForm({ answers, setAnswers }) {
   return (
-    <div className="space-y-5">
-      <p className="text-sm opacity-70">1 = not at all, 5 = very much</p>
-      {QUESTIONS.map((q, i) => (
-        <div key={q} className="space-y-2">
-          <p className="font-medium">{i + 1}. {q}</p>
-          <div className="join">
-            {SCALE.map((v) => (
-              <input
-                key={v}
-                type="radio"
-                name={`q${i}`}
-                className="join-item btn btn-sm"
-                aria-label={v}
-                checked={answers[i] === Number(v)}
-                onChange={() => {
-                  const next = [...answers];
-                  next[i] = Number(v);
-                  setAnswers(next);
-                }}
-              />
+    <div className="space-y-4">
+      {QUESTIONS.map((item) => (
+        <div key={item.id}>
+          <p className="font-medium mb-2">{item.q}</p>
+          <div className="join flex-wrap">
+            {item.options.map((o) => (
+              <button key={o} type="button"
+                className={`btn btn-sm join-item ${answers[item.id] === o ? "btn-primary" : ""}`}
+                onClick={() => setAnswers((a) => ({ ...a, [item.id]: o }))}>
+                {o}
+              </button>
             ))}
           </div>
         </div>

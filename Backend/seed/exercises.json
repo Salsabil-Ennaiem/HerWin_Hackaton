@@ -1,0 +1,232 @@
+[
+  {
+    "id": 1,
+    "title": "Box breathing",
+    "tags": [
+      "anxiety",
+      "fear",
+      "high_stress",
+      "any"
+    ],
+    "minutes": 3,
+    "steps": [
+      "Inhale 4 seconds",
+      "Hold 4 seconds",
+      "Exhale 4 seconds, hold 4",
+      "Repeat 6 times"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "5-4-3-2-1 grounding",
+    "tags": [
+      "anxiety",
+      "fear",
+      "high_stress"
+    ],
+    "minutes": 4,
+    "steps": [
+      "Name 5 things you see",
+      "4 you can touch",
+      "3 you hear",
+      "2 you smell, 1 you taste"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "4-7-8 breathing",
+    "tags": [
+      "anxiety",
+      "high_stress"
+    ],
+    "minutes": 3,
+    "steps": [
+      "Inhale through nose for 4",
+      "Hold for 7",
+      "Exhale slowly for 8",
+      "Repeat 4 times"
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Progressive muscle relaxation",
+    "tags": [
+      "anxiety",
+      "anger",
+      "high_stress"
+    ],
+    "minutes": 8,
+    "steps": [
+      "Tense your feet for 5 seconds",
+      "Release and notice the difference",
+      "Move up: legs, belly, hands, shoulders",
+      "Finish with your face"
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Brain dump",
+    "tags": [
+      "anxiety",
+      "neutral",
+      "any"
+    ],
+    "minutes": 5,
+    "steps": [
+      "Set a 5-minute timer",
+      "Write every worry without editing",
+      "Circle what you can act on today",
+      "Close the page"
+    ]
+  },
+  {
+    "id": 6,
+    "title": "Gratitude trio",
+    "tags": [
+      "sadness",
+      "neutral",
+      "joy",
+      "any"
+    ],
+    "minutes": 3,
+    "steps": [
+      "Write 3 small good things from today",
+      "Say why each mattered",
+      "Read them aloud once"
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Gentle walk",
+    "tags": [
+      "sadness",
+      "anger",
+      "high_stress",
+      "any"
+    ],
+    "minutes": 10,
+    "steps": [
+      "Leave your desk and phone",
+      "Walk at an easy pace",
+      "Notice 3 things around you"
+    ]
+  },
+  {
+    "id": 8,
+    "title": "Self-compassion pause",
+    "tags": [
+      "sadness",
+      "fear"
+    ],
+    "minutes": 3,
+    "steps": [
+      "Put a hand on your chest",
+      "Say: this is hard, and I am doing my best",
+      "Take 3 slow breaths"
+    ]
+  },
+  {
+    "id": 9,
+    "title": "Neck and shoulder release",
+    "tags": [
+      "anxiety",
+      "anger",
+      "high_stress"
+    ],
+    "minutes": 4,
+    "steps": [
+      "Roll shoulders back 5 times",
+      "Tilt head to each side for 20 seconds",
+      "Slowly drop chin to chest"
+    ]
+  },
+  {
+    "id": 10,
+    "title": "Cold-water face rinse",
+    "tags": [
+      "anger",
+      "high_stress"
+    ],
+    "minutes": 2,
+    "steps": [
+      "Splash cool water on your face",
+      "Pat dry slowly",
+      "Take 3 deep breaths"
+    ]
+  },
+  {
+    "id": 11,
+    "title": "Pomodoro reset",
+    "tags": [
+      "anxiety",
+      "neutral",
+      "any"
+    ],
+    "minutes": 25,
+    "steps": [
+      "Pick one small task",
+      "Work 25 minutes, phone away",
+      "Take a 5-minute break"
+    ]
+  },
+  {
+    "id": 12,
+    "title": "Call or text a friend",
+    "tags": [
+      "sadness",
+      "fear"
+    ],
+    "minutes": 10,
+    "steps": [
+      "Pick one person you trust",
+      "Send a simple hello",
+      "Share one real feeling"
+    ]
+  },
+  {
+    "id": 13,
+    "title": "Body scan",
+    "tags": [
+      "anxiety",
+      "fear",
+      "sadness"
+    ],
+    "minutes": 6,
+    "steps": [
+      "Lie or sit comfortably",
+      "Scan from toes to head",
+      "Soften every tense spot"
+    ]
+  },
+  {
+    "id": 14,
+    "title": "Joy boost playlist",
+    "tags": [
+      "joy",
+      "neutral",
+      "sadness"
+    ],
+    "minutes": 10,
+    "steps": [
+      "Choose 3 songs you love",
+      "Play them, move if you feel like it",
+      "Notice your mood after"
+    ]
+  },
+  {
+    "id": 15,
+    "title": "Sleep wind-down",
+    "tags": [
+      "anxiety",
+      "sadness",
+      "high_stress"
+    ],
+    "minutes": 10,
+    "steps": [
+      "Screens off 30 minutes before bed",
+      "Dim the lights",
+      "Write tomorrow's top 3 tasks",
+      "Do 5 slow breaths"
+    ]
+  }
+]

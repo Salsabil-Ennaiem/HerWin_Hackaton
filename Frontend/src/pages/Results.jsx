@@ -1,87 +1,72 @@
 import { Link } from "react-router-dom";
-import ContactsCard from "../components/ContactsCard";
+import { loadResult } from "../store";
+import StressGauge from "../components/StressGauge";
 import ExerciseCard from "../components/ExerciseCard";
 import PlanTimeline from "../components/PlanTimeline";
-import StressGauge from "../components/StressGauge";
-import { loadResult } from "../store";
+import ContactsCard from "../components/ContactsCard";
 
 export default function Results() {
   const r = loadResult();
-
   if (!r) {
     return (
-      <div className="text-center space-y-3">
-        <p>No result yet.</p>
-        <Link className="btn btn-primary" to="/">Write a journal entry</Link>
+      <div className="text-center py-10">
+        <p className="mb-4">No result yet.</p>
+        <Link to="/" className="btn btn-primary">Write a journal entry</Link>
       </div>
     );
   }
+  const emotions = Object.entries(r.mood.emotions || {}).sort((a, b) => b[1] - a[1]).filter(([, v]) => v > 0.05);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {r.distress_flag && <ContactsCard contacts={r.contacts} />}
 
-      <section className="card bg-base-100 shadow">
-        <div className="card-body">
-          <h2 className="card-title">Your message</h2>
-          <p>{r.support_message}</p>
-          <p className="text-sm opacity-60 italic">“{r.transcript}”</p>
-        </div>
-      </section>
-
-      <section className="card bg-base-100 shadow">
-        <div className="card-body sm:flex-row items-center gap-6">
+      <div className="card bg-base-100 shadow-sm">
+        <div className="card-body items-center text-center">
           <StressGauge score={r.stress_score} />
-          <div className="space-y-2">
-            <h2 className="card-title">Mood</h2>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(r.mood.emotions).map(([name, v]) => (
-                <span
-                  key={name}
-                  className={`badge ${name === r.mood.dominant ? "badge-primary" : "badge-outline"}`}
-                >
-                  {name} {Math.round(v * 100)}%
-                </span>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {r.mood.themes.map((t) => (
-                <span key={t} className="badge badge-ghost">#{t}</span>
-              ))}
-            </div>
+          <div className="flex flex-wrap justify-center gap-2 mt-2">
+            {emotions.map(([k, v]) => (
+              <span key={k} className={`badge ${k === r.mood.dominant ? "badge-primary" : "badge-outline"}`}>
+                {k} {Math.round(v * 100)}%
+              </span>
+            ))}
           </div>
+          {r.mood.themes?.length > 0 && (
+            <div className="text-xs opacity-60">Themes: {r.mood.themes.join(", ")}</div>
+          )}
+          <p className="mt-3 text-lg">{r.support_message}</p>
         </div>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">Exercises</h2>
-        {r.exercises.length === 0 && <p className="opacity-60">No exercise suggested.</p>}
-        {r.exercises.map((e) => <ExerciseCard key={e.id} exercise={e} />)}
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">Activities</h2>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <div className="bg-base-200 rounded-lg p-3">
-            <h3 className="font-medium">Indoor</h3>
-            <ul className="list-disc ml-5">{r.activities.indoor.map((a) => <li key={a}>{a}</li>)}</ul>
-          </div>
-          <div className="bg-base-200 rounded-lg p-3">
-            <h3 className="font-medium">Outdoor</h3>
-            <ul className="list-disc ml-5">{r.activities.outdoor.map((a) => <li key={a}>{a}</li>)}</ul>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">Today's plan</h2>
-        <PlanTimeline plan={r.plan} />
-      </section>
-
-      <div className="flex gap-2">
-        <Link className="btn btn-primary" to="/">New entry</Link>
-        <Link className="btn btn-outline" to="/dashboard">Dashboard</Link>
       </div>
+
+      {r.transcript && (
+        <details className="collapse collapse-arrow bg-base-100">
+          <summary className="collapse-title text-sm">What you wrote / said</summary>
+          <div className="collapse-content text-sm opacity-80">{r.transcript}</div>
+        </details>
+      )}
+
+      <section>
+        <h2 className="text-xl font-semibold mb-2">Try one of these</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {r.exercises.map((e) => <ExerciseCard key={e.id} exercise={e} entryId={r.entry_id} />)}
+        </div>
+      </section>
+
+      {(r.activities?.indoor?.length > 0 || r.activities?.outdoor?.length > 0) && (
+        <section className="card bg-base-100 shadow-sm">
+          <div className="card-body p-4 grid sm:grid-cols-2 gap-4 text-sm">
+            <div><h3 className="font-semibold">🏠 Indoors</h3><ul className="list-disc list-inside">{r.activities.indoor.map((a) => <li key={a}>{a}</li>)}</ul></div>
+            <div><h3 className="font-semibold">🌳 Outdoors</h3><ul className="list-disc list-inside">{r.activities.outdoor.map((a) => <li key={a}>{a}</li>)}</ul></div>
+          </div>
+        </section>
+      )}
+
+      <section className="card bg-base-100 shadow-sm">
+        <div className="card-body">
+          <h2 className="card-title">Your plan for today</h2>
+          <PlanTimeline plan={r.plan} />
+        </div>
+      </section>
     </div>
   );
 }

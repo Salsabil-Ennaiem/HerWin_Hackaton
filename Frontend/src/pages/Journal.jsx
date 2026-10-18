@@ -1,108 +1,76 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { postJournal, errMsg } from "../api";
+import { saveResult } from "../store";
+import VoiceRecorder from "../components/VoiceRecorder";
 import QAForm, { QUESTIONS } from "../components/QAForm";
 import Toast from "../components/Toast";
-import VoiceRecorder from "../components/VoiceRecorder";
-import { postJournal } from "../api";
-import { saveResult } from "../store";
 
-const TABS = [
-  { id: "text", label: "Write" },
-  { id: "voice", label: "Voice" },
-  { id: "qa", label: "Quick questions" },
-];
+const TABS = [["text", "✍️ Write"], ["voice", "🎤 Speak"], ["qa", "👆 Help me answer"]];
 
 export default function Journal() {
-  const navigate = useNavigate();
+  const nav = useNavigate();
   const [tab, setTab] = useState("text");
   const [text, setText] = useState("");
-  const [audio, setAudio] = useState(null);
-  const [answers, setAnswers] = useState(Array(QUESTIONS.length).fill(null));
+  const [blob, setBlob] = useState(null);
+  const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
 
-  const canSubmit =
-    (tab === "text" && text.trim().length >= 3) ||
-    (tab === "voice" && audio) ||
-    (tab === "qa" && answers.every((a) => a !== null));
+  const ready =
+    (tab === "text" && text.trim()) || (tab === "voice" && blob) || (tab === "qa" && Object.keys(answers).length > 0);
 
-  async function submit() {
+  const submit = async () => {
+    const fd = new FormData();
+    fd.append("mode", tab);
+    if (tab === "text") fd.append("text", text.trim());
+    if (tab === "voice") fd.append("audio", blob, "audio.webm");
+    if (tab === "qa") {
+      const list = QUESTIONS.filter((q) => answers[q.id]).map((q) => ({ q: q.q, a: answers[q.id] }));
+      fd.append("answers", JSON.stringify(list));
+    }
     setLoading(true);
-    setError(null);
     try {
-      const fd = new FormData();
-      fd.append("mode", tab);
-      if (tab === "text") fd.append("text", text.trim());
-      if (tab === "voice") fd.append("audio", audio, "note.webm");
-      if (tab === "qa") {
-        const payload = QUESTIONS.map((q, i) => ({ question: q, answer: answers[i] }));
-        fd.append("answers", JSON.stringify(payload));
-      }
-      const result = await postJournal(fd);
-      saveResult(result);
-      navigate("/results");
-    } catch {
-      setError({
-        message:
-          tab === "voice"
-            ? "We couldn't process your voice note."
-            : "Something went wrong. Please try again.",
-        fallback: tab === "voice",
-      });
+      saveResult(await postJournal(fd));
+      nav("/results");
+    } catch (e) {
+      setToast(
+        tab === "voice"
+          ? { message: "We couldn't understand the recording.", actionLabel: "Type instead", onAction: () => { setTab("text"); setToast(null); } }
+          : { message: errMsg(e) },
+      );
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">How are you feeling today?</h1>
+    <div className="card bg-base-100 shadow-sm">
+      <div className="card-body">
+        <h1 className="card-title text-2xl">How are you feeling today?</h1>
+        <div role="tablist" className="tabs tabs-box w-fit">
+          {TABS.map(([k, label]) => (
+            <button key={k} role="tab" className={`tab ${tab === k ? "tab-active" : ""}`} onClick={() => setTab(k)}>
+              {label}
+            </button>
+          ))}
+        </div>
 
-      <div role="tablist" className="tabs tabs-border">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            className={`tab ${tab === t.id ? "tab-active" : ""}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+        <div className="mt-3">
+          {tab === "text" && (
+            <textarea className="textarea textarea-bordered w-full h-44" value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Write anything: how your day went, what worries you… (Arabic, French or English)" />
+          )}
+          {tab === "voice" && <VoiceRecorder onRecorded={setBlob} />}
+          {tab === "qa" && <QAForm answers={answers} setAnswers={setAnswers} />}
+        </div>
+
+        <button className="btn btn-primary mt-4 self-end" disabled={!ready || loading} onClick={submit}>
+          {loading ? <span className="loading loading-spinner" /> : "Analyse"}
+        </button>
       </div>
-
-      {tab === "text" && (
-        <textarea
-          className="textarea textarea-bordered w-full h-40"
-          placeholder="Write freely: in English, French or Arabic…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-      )}
-
-      {tab === "voice" && (
-        <VoiceRecorder onRecorded={setAudio} onClear={() => setAudio(null)} />
-      )}
-
-      {tab === "qa" && <QAForm answers={answers} setAnswers={setAnswers} />}
-
-      <button
-        className="btn btn-primary w-full"
-        disabled={loading || !canSubmit}
-        onClick={submit}
-      >
-        {loading ? <span className="loading loading-spinner" /> : "Analyse"}
-      </button>
-
-      <Toast
-        message={error?.message}
-        actionLabel={error?.fallback ? "Type instead" : undefined}
-        onAction={() => {
-          setTab("text");
-          setError(null);
-        }}
-        onClose={() => setError(null)}
-      />
+      <Toast {...(toast || {})} onClose={() => setToast(null)} />
     </div>
   );
 }

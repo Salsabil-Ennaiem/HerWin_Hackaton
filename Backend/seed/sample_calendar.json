@@ -1,0 +1,37 @@
+[
+  {
+    "title": "Algorithms midterm",
+    "kind": "exam",
+    "in_days": 3,
+    "start": "10:00",
+    "end": "12:00"
+  },
+  {
+    "title": "Databases project due",
+    "kind": "deadline",
+    "in_days": 6,
+    "start": "23:00",
+    "end": "23:59"
+  },
+  {
+    "title": "Statistics lecture",
+    "kind": "class",
+    "in_days": 1,
+    "start": "14:00",
+    "end": "16:00"
+  },
+  {
+    "title": "English class",
+    "kind": "class",
+    "in_days": 2,
+    "start": "09:00",
+    "end": "10:30"
+  },
+  {
+    "title": "Networks lab",
+    "kind": "class",
+    "in_days": 4,
+    "start": "13:00",
+    "end": "15:00"
+  }
+]

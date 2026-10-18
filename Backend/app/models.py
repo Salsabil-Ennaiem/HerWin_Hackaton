@@ -1,8 +1,14 @@
+import os
 from datetime import date, datetime, timezone
 
-from sqlmodel import JSON, Column, Field, SQLModel
+from sqlmodel import JSON, Column, Field, SQLModel, create_engine
 
-from app.db import engine  # noqa: F401  (re-exported so `from .models import engine` still works)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./herwin.db")
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    echo=False,
+)
 
 
 def utcnow() -> datetime:

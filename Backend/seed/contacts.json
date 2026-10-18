@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Emergency medical service (SAMU)",
+    "phone": "190",
+    "note": "Tunisia, 24/7 emergencies"
+  },
+  {
+    "name": "Civil protection",
+    "phone": "198",
+    "note": "Tunisia, emergencies"
+  },
+  {
+    "name": "Campus counselling service",
+    "phone": "EDIT-ME",
+    "note": "Replace with your university's counsellor contact"
+  },
+  {
+    "name": "Trusted person",
+    "phone": "",
+    "note": "Call a friend or family member you trust, right now"
+  },
+  {
+    "name": "Find a helpline in your country",
+    "url": "https://findahelpline.com",
+    "note": "International directory"
+  }
+]

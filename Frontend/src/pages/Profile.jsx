@@ -1,137 +1,92 @@
 import { useEffect, useState } from "react";
-import Toast from "../components/Toast";
-import { deleteMyData, getEvents, getProfile, seedCalendar, updateProfile } from "../api";
+import { deleteMyData, demoSeed, errMsg, getEvents, getProfile, importIcs, seedCalendar, updateProfile } from "../api";
 import { clearResult } from "../store";
+import Toast from "../components/Toast";
 
 export default function Profile() {
-  const [profile, setProfile] = useState(null);
+  const [p, setP] = useState(null);
   const [events, setEvents] = useState([]);
   const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
+  const [toast, setToast] = useState(null);
 
-  const refresh = () => {
-    getProfile().then(setProfile).catch(() => setError("Could not load profile."));
+  const load = () => {
+    getProfile().then(setP).catch((e) => setToast({ message: errMsg(e) }));
     getEvents().then(setEvents).catch(() => {});
   };
-  useEffect(refresh, []);
+  useEffect(load, []);
 
-  async function save(patch) {
-    const next = { ...profile, ...patch };
-    setProfile(next);
-    try {
-      await updateProfile({
-        lang: next.lang,
-        period_tracking: next.period_tracking,
-        last_period: next.last_period || null,
-        cycle_len: Number(next.cycle_len),
-      });
-      setMsg("Saved");
-    } catch {
-      setError("Could not save.");
-    }
-  }
+  const run = async (fn, ok) => {
+    try { await fn(); setMsg(ok); load(); } catch (e) { setToast({ message: errMsg(e) }); }
+  };
 
-  async function seed() {
-    await seedCalendar();
-    refresh();
-    setMsg("Sample calendar loaded");
-  }
+  const save = () => run(() => updateProfile({
+    name: p.name, lang: p.lang, period_tracking: p.period_tracking,
+    last_period: p.last_period || null, cycle_len: Number(p.cycle_len) || 28,
+  }), "Profile saved");
 
-  async function wipe() {
-    if (!window.confirm("Delete ALL your data? This cannot be undone.")) return;
-    try {
-      await deleteMyData();
-      clearResult();
-      refresh();
-      setMsg("All your data has been deleted.");
-    } catch {
-      setError("Could not delete data.");
-    }
-  }
+  const wipe = () => {
+    if (!confirm("Delete all your entries, plans and events? This cannot be undone.")) return;
+    run(async () => { await deleteMyData(); clearResult(); }, "All your data was deleted");
+  };
 
-  if (!profile) return <span className="loading loading-spinner" />;
+  if (!p) return <div className="text-center py-10"><span className="loading loading-spinner loading-lg" /></div>;
+  const set = (k) => (e) => setP({ ...p, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Profile</h1>
+    <div className="space-y-4">
+      {msg && <div className="alert alert-success alert-soft">{msg}</div>}
 
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">Language</h2>
-        <select
-          className="select select-bordered"
-          value={profile.lang}
-          onChange={(e) => save({ lang: e.target.value })}
-        >
-          <option value="en">English</option>
-          <option value="fr">Français</option>
-          <option value="ar">العربية</option>
-        </select>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">Calendar</h2>
-        <button className="btn btn-outline" onClick={seed}>Load sample calendar</button>
-        <ul className="space-y-1">
-          {events.map((e) => (
-            <li key={e.id} className="flex gap-2 items-center">
-              <span className="badge">{e.kind}</span>
-              <span>{e.title}</span>
-              <span className="opacity-60 text-sm">{new Date(e.start).toLocaleString()}</span>
-            </li>
-          ))}
-          {events.length === 0 && <li className="opacity-60">No events yet.</li>}
-        </ul>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">Cycle tracking (optional)</h2>
-        <label className="label cursor-pointer justify-start gap-3">
-          <input
-            type="checkbox"
-            className="toggle toggle-primary"
-            checked={profile.period_tracking}
-            onChange={(e) => save({ period_tracking: e.target.checked })}
-          />
-          <span>Use my cycle to adapt suggestions</span>
+      <div className="card bg-base-100 shadow-sm"><div className="card-body">
+        <h2 className="card-title">Profile</h2>
+        <label className="form-control">Name
+          <input className="input input-bordered w-full" value={p.name} onChange={set("name")} />
         </label>
-        {profile.period_tracking && (
-          <div className="flex flex-wrap gap-3">
-            <label className="form-control">
-              <span className="label-text">Last period start</span>
-              <input
-                type="date"
-                className="input input-bordered"
-                value={profile.last_period || ""}
-                onChange={(e) => save({ last_period: e.target.value })}
-              />
+        <label className="form-control">Language
+          <select className="select select-bordered w-full" value={p.lang} onChange={set("lang")}>
+            <option value="en">English</option><option value="fr">Français</option><option value="ar">العربية</option>
+          </select>
+        </label>
+        <label className="label cursor-pointer justify-start gap-3">
+          <input type="checkbox" className="toggle toggle-primary" checked={p.period_tracking} onChange={set("period_tracking")} />
+          <span>Cycle-aware plans (optional, stays on this device's database)</span>
+        </label>
+        {p.period_tracking && (
+          <div className="grid grid-cols-2 gap-3">
+            <label>Last period start
+              <input type="date" className="input input-bordered w-full" value={p.last_period || ""} onChange={set("last_period")} />
             </label>
-            <label className="form-control">
-              <span className="label-text">Cycle length (days)</span>
-              <input
-                type="number" min="20" max="45"
-                className="input input-bordered w-28"
-                value={profile.cycle_len}
-                onChange={(e) => save({ cycle_len: e.target.value })}
-              />
+            <label>Cycle length (days)
+              <input type="number" min="20" max="45" className="input input-bordered w-full" value={p.cycle_len} onChange={set("cycle_len")} />
             </label>
           </div>
         )}
-      </section>
+        <button className="btn btn-primary self-end" onClick={save}>Save</button>
+      </div></div>
 
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold text-error">Privacy</h2>
-        <button className="btn btn-error" onClick={wipe}>Delete my data</button>
-      </section>
-
-      {msg && (
-        <div className="toast toast-bottom toast-center">
-          <div className="alert alert-success" onAnimationEnd={() => setMsg("")}>
-            <span>{msg}</span>
-            <button className="btn btn-xs btn-ghost" onClick={() => setMsg("")}>✕</button>
-          </div>
+      <div className="card bg-base-100 shadow-sm"><div className="card-body">
+        <h2 className="card-title">Calendar</h2>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn btn-outline" onClick={() => run(seedCalendar, "Sample calendar loaded")}>Load sample calendar</button>
+          <label className="btn btn-outline">
+            Import .ics
+            <input type="file" accept=".ics" hidden onChange={(e) => e.target.files[0] && run(() => importIcs(e.target.files[0]), "Calendar imported")} />
+          </label>
+          <button className="btn btn-outline" onClick={() => run(demoSeed, "Demo data (14 days) loaded")}>Load demo history</button>
         </div>
-      )}
-      <Toast message={error} onClose={() => setError("")} />
+        <ul className="text-sm space-y-1 mt-2">
+          {events.slice(0, 8).map((e) => (
+            <li key={e.id}><span className="badge badge-sm mr-2">{e.kind}</span>{e.title} · {new Date(e.start).toLocaleString()}</li>
+          ))}
+        </ul>
+      </div></div>
+
+      <div className="card bg-base-100 shadow-sm border border-error/40"><div className="card-body">
+        <h2 className="card-title text-error">Privacy</h2>
+        <p className="text-sm">Remove everything this app stored about you.</p>
+        <button className="btn btn-error btn-outline self-start" onClick={wipe}>Delete my data</button>
+      </div></div>
+
+      <Toast {...(toast || {})} onClose={() => setToast(null)} />
     </div>
   );
 }
