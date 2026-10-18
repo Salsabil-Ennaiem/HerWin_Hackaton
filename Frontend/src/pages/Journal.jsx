@@ -18,7 +18,9 @@ export default function Journal() {
   const [toast, setToast] = useState(null);
 
   const ready =
-    (tab === "text" && text.trim()) || (tab === "voice" && blob) || (tab === "qa" && Object.keys(answers).length > 0);
+    (tab === "text" && text.trim()) ||
+    (tab === "voice" && blob) ||
+    (tab === "qa" && QUESTIONS.every(({ id }) => answers[id]));
 
   const submit = async () => {
     const fd = new FormData();
@@ -36,7 +38,11 @@ export default function Journal() {
     } catch (e) {
       setToast(
         tab === "voice"
-          ? { message: "We couldn't understand the recording.", actionLabel: "Type instead", onAction: () => { setTab("text"); setToast(null); } }
+          ? {
+              message: errMsg(e),
+              actionLabel: "Type instead",
+              onAction: () => { setTab("text"); setToast(null); },
+            }
           : { message: errMsg(e) },
       );
     } finally {
