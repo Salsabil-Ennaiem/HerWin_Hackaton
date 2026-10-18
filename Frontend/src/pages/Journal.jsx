@@ -1,16 +1,21 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { postJournal, errMsg } from "../api";
 import { saveResult } from "../store";
+import { useLang } from "../i18n.jsx";
 import VoiceRecorder from "../components/VoiceRecorder";
-import QAForm, { QUESTIONS } from "../components/QAForm";
+import QAForm, { getQuestions } from "../components/QAForm";
 import Toast from "../components/Toast";
+import { ChatPanel } from "./Chat";
 
-const TABS = [["text", "✍️ Write"], ["voice", "🎤 Speak"], ["qa", "👆 Help me answer"]];
+const TABS = [["text", "j_write"], ["voice", "j_speak"], ["qa", "j_qa"], ["chat", "nav_chat"]];
 
 export default function Journal() {
   const nav = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { t, lang } = useLang();
   const [tab, setTab] = useState("text");
+  const activeTab = searchParams.get("tab") === "chat" ? "chat" : tab;
   const [text, setText] = useState("");
   const [blob, setBlob] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -18,17 +23,15 @@ export default function Journal() {
   const [toast, setToast] = useState(null);
 
   const ready =
-    (tab === "text" && text.trim()) ||
-    (tab === "voice" && blob) ||
-    (tab === "qa" && QUESTIONS.every(({ id }) => answers[id]));
+    (activeTab === "text" && text.trim()) || (activeTab === "voice" && blob) || (activeTab === "qa" && Object.keys(answers).length > 0);
 
   const submit = async () => {
     const fd = new FormData();
-    fd.append("mode", tab);
-    if (tab === "text") fd.append("text", text.trim());
-    if (tab === "voice") fd.append("audio", blob, "audio.webm");
-    if (tab === "qa") {
-      const list = QUESTIONS.filter((q) => answers[q.id]).map((q) => ({ q: q.q, a: answers[q.id] }));
+    fd.append("mode", activeTab);
+    if (activeTab === "text") fd.append("text", text.trim());
+    if (activeTab === "voice") fd.append("audio", blob, "audio.webm");
+    if (activeTab === "qa") {
+      const list = getQuestions(lang).filter((q) => answers[q.id]).map((q) => ({ q: q.q, a: answers[q.id] }));
       fd.append("answers", JSON.stringify(list));
     }
     setLoading(true);
@@ -37,12 +40,8 @@ export default function Journal() {
       nav("/results");
     } catch (e) {
       setToast(
-        tab === "voice"
-          ? {
-              message: errMsg(e),
-              actionLabel: "Type instead",
-              onAction: () => { setTab("text"); setToast(null); },
-            }
+        activeTab === "voice"
+          ? { message: t("j_voice_fail"), actionLabel: t("j_type"), onAction: () => { setTab("text"); setToast(null); } }
           : { message: errMsg(e) },
       );
     } finally {
@@ -53,28 +52,33 @@ export default function Journal() {
   return (
     <div className="card bg-base-100 shadow-sm">
       <div className="card-body">
-        <h1 className="card-title text-2xl">How are you feeling today?</h1>
+        <h1 className="card-title text-2xl">{t(activeTab === "chat" ? "ch_title" : "j_title")}</h1>
         <div role="tablist" className="tabs tabs-box w-fit">
-          {TABS.map(([k, label]) => (
-            <button key={k} role="tab" className={`tab ${tab === k ? "tab-active" : ""}`} onClick={() => setTab(k)}>
-              {label}
+          {TABS.map(([k, key]) => (
+            <button key={k} role="tab" className={`tab ${activeTab === k ? "tab-active" : ""}`} onClick={() => {
+              if (k !== "chat") setTab(k);
+              setSearchParams(k === "chat" ? { tab: "chat" } : {});
+            }}>
+              {t(key)}
             </button>
           ))}
         </div>
 
         <div className="mt-3">
-          {tab === "text" && (
+          {activeTab === "chat" && <ChatPanel />}
+          {activeTab === "text" && (
             <textarea className="textarea textarea-bordered w-full h-44" value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Write anything: how your day went, what worries you… (Arabic, French or English)" />
+              onChange={(e) => setText(e.target.value)} placeholder={t("j_placeholder")} />
           )}
-          {tab === "voice" && <VoiceRecorder onRecorded={setBlob} />}
-          {tab === "qa" && <QAForm answers={answers} setAnswers={setAnswers} />}
+          {activeTab === "voice" && <VoiceRecorder onRecorded={setBlob} />}
+          {activeTab === "qa" && <QAForm answers={answers} setAnswers={setAnswers} />}
         </div>
 
-        <button className="btn btn-primary mt-4 self-end" disabled={!ready || loading} onClick={submit}>
-          {loading ? <span className="loading loading-spinner" /> : "Analyse"}
-        </button>
+        {activeTab !== "chat" && (
+          <button className="btn btn-primary mt-4 self-end" disabled={!ready || loading} onClick={submit}>
+            {loading ? <span className="loading loading-spinner" /> : t("j_analyse")}
+          </button>
+        )}
       </div>
       <Toast {...(toast || {})} onClose={() => setToast(null)} />
     </div>

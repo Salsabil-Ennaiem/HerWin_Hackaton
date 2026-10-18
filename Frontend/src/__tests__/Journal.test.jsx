@@ -2,12 +2,14 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import Journal from "../pages/Journal";
-import { postJournal } from "../api";
+import { postJournal, sendChat } from "../api";
 import { clearResult, loadResult } from "../store";
 import { mockResult } from "../test/fixtures";
+import { LangProvider } from "../i18n";
 
 vi.mock("../api", () => ({
   postJournal: vi.fn(),
+  sendChat: vi.fn(),
   errMsg: (e) => e?.response?.data?.detail || e?.message || "Something went wrong",
 }));
 
@@ -24,14 +26,39 @@ vi.mock("../components/VoiceRecorder", async () => {
   };
 });
 
+describe("Journal : onglet discussion", () => {
+  it("ouvre le chat depuis l'URL et envoie les messages au service", async () => {
+    const user = userEvent.setup();
+    render(
+      <LangProvider>
+        <MemoryRouter initialEntries={["/?tab=chat"]}>
+          <Routes>
+            <Route path="/" element={<Journal />} />
+          </Routes>
+        </MemoryRouter>
+      </LangProvider>
+    );
+
+    expect(screen.getByRole("heading", { name: "Talk it through" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /analyse/i })).not.toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText(/type a message/i), "I feel sad");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText("I hear you.")).toBeInTheDocument();
+    expect(sendChat).toHaveBeenCalledWith("I feel sad", [], "en");
+  });
+});
+
 const renderJournal = () =>
   render(
-    <MemoryRouter initialEntries={["/"]}>
-      <Routes>
-        <Route path="/" element={<Journal />} />
-        <Route path="/results" element={<div>RESULTS PAGE</div>} />
-      </Routes>
-    </MemoryRouter>
+    <LangProvider>
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<Journal />} />
+          <Route path="/results" element={<div>RESULTS PAGE</div>} />
+        </Routes>
+      </MemoryRouter>
+    </LangProvider>
   );
 
 const analyseBtn = () => screen.getByRole("button", { name: /analyse/i });
@@ -40,6 +67,8 @@ beforeEach(() => {
   clearResult();
   postJournal.mockReset();
   postJournal.mockResolvedValue(mockResult);
+  sendChat.mockReset();
+  sendChat.mockResolvedValue({ reply: "I hear you.", distress: false, contacts: [] });
 });
 
 describe("Journal : onglet texte", () => {

@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { patchBlock } from "../api";
+import { useLang } from "../i18n.jsx";
 
 const ICON = { study: "📚", break: "☕", movement: "🚶", meal: "🍽️", free: "🌿" };
 const hm = (iso) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 export default function PlanTimeline({ plan }) {
+  const { t } = useLang();
   const [done, setDone] = useState(() => Object.fromEntries((plan?.blocks || []).map((b) => [b.id, b.done])));
-  if (!plan?.blocks?.length) return <p className="text-sm opacity-70">No plan yet.</p>;
+  if (!plan?.blocks?.length) return <p className="text-sm opacity-70">{t("p_none")}</p>;
 
   const toggle = async (b) => {
     const next = !done[b.id];
@@ -26,7 +28,7 @@ export default function PlanTimeline({ plan }) {
               <input type="checkbox" className="checkbox checkbox-sm checkbox-primary"
                 checked={!!done[b.id]} onChange={() => toggle(b)} />
               <div className={done[b.id] ? "line-through opacity-50" : ""}>
-                <div className="text-xs opacity-60">{hm(b.start)} – {hm(b.end)}</div>
+                <div className="text-xs opacity-60" dir="ltr">{hm(b.start)} – {hm(b.end)}</div>
                 <div className="text-sm">{b.title}</div>
               </div>
             </div>

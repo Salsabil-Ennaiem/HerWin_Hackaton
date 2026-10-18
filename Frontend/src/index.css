@@ -2,3 +2,9 @@
 @plugin "daisyui";
 
 body { margin: 0; }
+
+@media print {
+  .no-print { display: none !important; }
+  body, main { background: white !important; }
+  .card { box-shadow: none !important; border: 1px solid #ddd; break-inside: avoid; }
+}

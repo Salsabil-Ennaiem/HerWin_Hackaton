@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useLang } from "../i18n.jsx";
 
 export default function VoiceRecorder({ onRecorded }) {
+  const { t } = useLang();
   const [recording, setRecording] = useState(false);
   const [url, setUrl] = useState(null);
   const [error, setError] = useState("");
@@ -17,7 +19,7 @@ export default function VoiceRecorder({ onRecorded }) {
       chunks.current = [];
       rec.ondataavailable = (e) => e.data.size && chunks.current.push(e.data);
       rec.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
+        stream.getTracks().forEach((tr) => tr.stop());
         const blob = new Blob(chunks.current, { type: rec.mimeType || "audio/webm" });
         setUrl(URL.createObjectURL(blob));
         onRecorded(blob);
@@ -26,14 +28,11 @@ export default function VoiceRecorder({ onRecorded }) {
       recRef.current = rec;
       setRecording(true);
     } catch {
-      setError("Microphone not available. Please type instead.");
+      setError(t("v_mic"));
     }
   };
 
-  const stop = () => {
-    recRef.current?.stop();
-    setRecording(false);
-  };
+  const stop = () => { recRef.current?.stop(); setRecording(false); };
 
   return (
     <div className="flex flex-col items-center gap-3 py-4">
@@ -41,7 +40,7 @@ export default function VoiceRecorder({ onRecorded }) {
         onClick={recording ? stop : start}>
         {recording ? "■" : "🎤"}
       </button>
-      <p className="text-sm opacity-70">{recording ? "Recording… tap to stop" : "Tap to record (Arabic, French or English)"}</p>
+      <p className="text-sm opacity-70">{recording ? t("v_rec") : t("v_tap")}</p>
       {url && <audio controls src={url} className="w-full" />}
       {error && <p className="text-error text-sm">{error}</p>}
     </div>
