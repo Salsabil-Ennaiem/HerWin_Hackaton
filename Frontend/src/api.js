@@ -1,6 +1,21 @@
 import axios from "axios";
+import { getToken, logout } from "./store";
 
 export const api = axios.create({ baseURL: "/api", timeout: 60000 });
+
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) logout();
+    return Promise.reject(error);
+  },
+);
 
 export const postJournal = (formData) => api.post("/journal", formData).then((r) => r.data);
 export const getJournal = () => api.get("/journal").then((r) => r.data);
@@ -26,5 +41,15 @@ export const completeExercise = (id, entryId) =>
 
 export const sendChat = (message, history, lang) =>
   api.post("/chat", { message, history, lang }).then((r) => r.data);
+
+export async function downloadIcs() {
+  const response = await api.get("/plan/today.ics", { responseType: "blob" });
+  const url = URL.createObjectURL(response.data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "herwin-plan.ics";
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export const errMsg = (e) => e?.response?.data?.detail || e?.message || "Something went wrong";

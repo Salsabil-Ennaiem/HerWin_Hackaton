@@ -1,13 +1,16 @@
 import json
-from datetime import datetime, date, time, timedelta, timezone
+import re
+from datetime import datetime, date, time, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, NaiveDatetime
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from . import ai, logic
-from .models import (engine, Profile, Event, Entry, Plan, Block, ExerciseLog)
+from .auth import current_user
+from .models import engine, utcnow, Profile, Event, Entry, Plan, Block, ExerciseLog
 
 router = APIRouter(prefix="/api")
 SEED = Path(__file__).resolve().parent.parent / "seed"
@@ -32,6 +35,22 @@ def load(name: str):
 def wipe(s: Session, model, *conds):
     for row in s.exec(select(model).where(*conds)).all():
         s.delete(row)
+
+
+def profile_for_user(s: Session, email: str) -> Profile:
+    profile = s.exec(select(Profile).where(Profile.user_email == email)).first()
+    if profile is None:
+        profile = Profile(user_email=email)
+        s.add(profile)
+        try:
+            s.commit()
+        except IntegrityError:
+            s.rollback()
+            profile = s.exec(select(Profile).where(Profile.user_email == email)).first()
+            if profile is None:
+                raise
+        s.refresh(profile)
+    return profile
 
 
 def cycle_lighter(p: Profile, day: date) -> bool:
@@ -86,7 +105,8 @@ def health():
 @router.post("/journal")
 async def journal(mode: str = Form(...), text: str | None = Form(None),
                   audio: UploadFile | None = File(None), answers: str | None = Form(None),
-                  s: Session = Depends(get_session)):
+                  s: Session = Depends(get_session),
+                  user: dict = Depends(current_user)):
     if mode == "voice" and audio:
         text = await ai.transcribe(audio)
     elif mode == "qa":
@@ -96,10 +116,14 @@ async def journal(mode: str = Form(...), text: str | None = Form(None),
         raise HTTPException(400, "Empty entry: type, record or answer first.")
 
     today = date.today()
-    profile = s.get(Profile, 1) or Profile()
-    events = s.exec(select(Event).where(Event.start >= datetime.combine(today, time.min))
+    email = user["email"]
+    profile = profile_for_user(s, email)
+    events = s.exec(select(Event).where(
+                        Event.user_email == email,
+                        Event.start >= datetime.combine(today, time.min))
                     .order_by(Event.start)).all()
-    past = s.exec(select(Entry).order_by(Entry.id.desc()).limit(7)).all()
+    past = s.exec(select(Entry).where(Entry.user_email == email)
+                  .order_by(Entry.id.desc()).limit(7)).all()
     trend = [e.stress for e in reversed(past)]
     context = "; ".join(f"{e.title} ({e.kind}) in {(e.start.date() - today).days} days"
                         for e in events[:5])
@@ -116,18 +140,19 @@ async def journal(mode: str = Form(...), text: str | None = Form(None),
     exercises = logic.recommend_exercises(res.get("dominant", "anxiety"), stress)
     contacts = load("contacts.json") if distress else []
 
-    entry = Entry(mode=mode, text=text, dominant=res.get("dominant", "anxiety"),
+    entry = Entry(user_email=email, mode=mode, text=text, dominant=res.get("dominant", "anxiety"),
                   emotions=res.get("emotions", {}), themes=res.get("themes", []),
                   stress=stress, distress=distress,
                   support_message=res.get("support_message", ""))
     s.add(entry); s.commit(); s.refresh(entry)
 
-    plan = Plan(day=today, explanation=plan_data.get("explanation", ""), entry_id=entry.id)
+    plan = Plan(user_email=email, day=today,
+                explanation=plan_data.get("explanation", ""), entry_id=entry.id)
     s.add(plan); s.commit(); s.refresh(plan)
 
     blocks = []
     for b in plan_data.get("blocks", []):
-        row = Block(plan_id=plan.id, start=datetime.fromisoformat(b["start"]),
+        row = Block(user_email=email, plan_id=plan.id, start=datetime.fromisoformat(b["start"]),
                     end=datetime.fromisoformat(b["end"]), type=b["type"], title=b["title"])
         s.add(row); s.commit(); s.refresh(row)
         blocks.append(row)
@@ -137,18 +162,26 @@ async def journal(mode: str = Form(...), text: str | None = Form(None),
 
 
 @router.get("/journal")
-def list_journal(s: Session = Depends(get_session)):
-    rows = s.exec(select(Entry).order_by(Entry.id.desc()).limit(50)).all()
+def list_journal(s: Session = Depends(get_session), user: dict = Depends(current_user)):
+    rows = s.exec(select(Entry).where(Entry.user_email == user["email"])
+                  .order_by(Entry.id.desc()).limit(50)).all()
     return [e.model_dump(mode="json") for e in rows]
 
 
 @router.get("/journal/{entry_id}")
-def get_entry(entry_id: int, s: Session = Depends(get_session)):
-    e = s.get(Entry, entry_id)
+def get_entry(entry_id: int, s: Session = Depends(get_session),
+              user: dict = Depends(current_user)):
+    e = s.exec(select(Entry).where(
+        Entry.id == entry_id, Entry.user_email == user["email"]
+    )).first()
     if not e:
         raise HTTPException(404, "Entry not found")
-    plan = s.exec(select(Plan).where(Plan.entry_id == e.id)).first()
-    blocks = s.exec(select(Block).where(Block.plan_id == plan.id).order_by(Block.start)).all() if plan else []
+    plan = s.exec(select(Plan).where(
+        Plan.entry_id == e.id, Plan.user_email == user["email"]
+    )).first()
+    blocks = s.exec(select(Block).where(
+        Block.plan_id == plan.id, Block.user_email == user["email"]
+    ).order_by(Block.start)).all() if plan else []
     contacts = load("contacts.json") if e.distress else []
     return result(e, plan, blocks, logic.recommend_exercises(e.dominant, e.stress),
                   {"indoor": [], "outdoor": []}, contacts)
@@ -158,17 +191,18 @@ def get_entry(entry_id: int, s: Session = Depends(get_session)):
 class EventIn(BaseModel):
     title: str
     kind: str = "other"
-    start: datetime
-    end: datetime
+    start: NaiveDatetime
+    end: NaiveDatetime
 
 
 @router.post("/calendar/seed")
-def seed_calendar(s: Session = Depends(get_session)):
-    wipe(s, Event, Event.source == "seed")
+def seed_calendar(s: Session = Depends(get_session), user: dict = Depends(current_user)):
+    email = user["email"]
+    wipe(s, Event, Event.user_email == email, Event.source == "seed")
     items = load("sample_calendar.json")
     for it in items:
         d = date.today() + timedelta(days=it["in_days"])
-        s.add(Event(title=it["title"], kind=it["kind"], source="seed",
+        s.add(Event(user_email=email, title=it["title"], kind=it["kind"], source="seed",
                     start=datetime.combine(d, time.fromisoformat(it["start"])),
                     end=datetime.combine(d, time.fromisoformat(it["end"]))))
     s.commit()
@@ -176,21 +210,26 @@ def seed_calendar(s: Session = Depends(get_session)):
 
 
 @router.get("/calendar/events")
-def list_events(s: Session = Depends(get_session)):
-    rows = s.exec(select(Event).order_by(Event.start)).all()
+def list_events(s: Session = Depends(get_session), user: dict = Depends(current_user)):
+    rows = s.exec(select(Event).where(Event.user_email == user["email"])
+                  .order_by(Event.start)).all()
     return [e.model_dump(mode="json") for e in rows]
 
 
 @router.post("/calendar/events")
-def add_event(body: EventIn, s: Session = Depends(get_session)):
-    ev = Event(**body.model_dump(), source="manual")
+def add_event(body: EventIn, s: Session = Depends(get_session),
+              user: dict = Depends(current_user)):
+    ev = Event(user_email=user["email"], **body.model_dump(), source="manual")
     s.add(ev); s.commit(); s.refresh(ev)
     return ev.model_dump(mode="json")
 
 
 @router.delete("/calendar/events/{event_id}")
-def delete_event(event_id: int, s: Session = Depends(get_session)):
-    ev = s.get(Event, event_id)
+def delete_event(event_id: int, s: Session = Depends(get_session),
+                 user: dict = Depends(current_user)):
+    ev = s.exec(select(Event).where(
+        Event.id == event_id, Event.user_email == user["email"]
+    )).first()
     if not ev:
         raise HTTPException(404, "Event not found")
     s.delete(ev); s.commit()
@@ -207,13 +246,14 @@ class ProfileIn(BaseModel):
 
 
 @router.get("/profile")
-def get_profile(s: Session = Depends(get_session)):
-    return s.get(Profile, 1).model_dump(mode="json")
+def get_profile(s: Session = Depends(get_session), user: dict = Depends(current_user)):
+    return profile_for_user(s, user["email"]).model_dump(mode="json")
 
 
 @router.put("/profile")
-def put_profile(body: ProfileIn, s: Session = Depends(get_session)):
-    p = s.get(Profile, 1)
+def put_profile(body: ProfileIn, s: Session = Depends(get_session),
+                user: dict = Depends(current_user)):
+    p = profile_for_user(s, user["email"])
     for k, v in body.model_dump().items():
         setattr(p, k, v)
     s.add(p); s.commit(); s.refresh(p)
@@ -222,9 +262,12 @@ def put_profile(body: ProfileIn, s: Session = Depends(get_session)):
 
 # ---------------------------------------------------------------- DASHBOARD (P1)
 @router.get("/dashboard")
-def dashboard(s: Session = Depends(get_session)):
-    now, today = datetime.now(timezone.utc), date.today()
-    rows = s.exec(select(Entry).where(Entry.created_at >= now - timedelta(days=14))
+def dashboard(s: Session = Depends(get_session), user: dict = Depends(current_user)):
+    email, today = user["email"], date.today()
+    now = utcnow()
+    rows = s.exec(select(Entry).where(
+                      Entry.user_email == email,
+                      Entry.created_at >= now - timedelta(days=14))
                   .order_by(Entry.created_at)).all()
     by_day = {}
     for e in rows:
@@ -232,9 +275,15 @@ def dashboard(s: Session = Depends(get_session)):
         by_day[d] = {"date": d, "stress": e.stress, "dominant": e.dominant}
     trend = list(by_day.values())
 
-    plan = s.exec(select(Plan).where(Plan.day == today).order_by(Plan.id.desc())).first()
-    blocks = s.exec(select(Block).where(Block.plan_id == plan.id).order_by(Block.start)).all() if plan else []
-    nxt = s.exec(select(Event).where(Event.start >= now, Event.kind.in_(["exam", "deadline"]))
+    plan = s.exec(select(Plan).where(
+        Plan.user_email == email, Plan.day == today
+    ).order_by(Plan.id.desc())).first()
+    blocks = s.exec(select(Block).where(
+        Block.plan_id == plan.id, Block.user_email == email
+    ).order_by(Block.start)).all() if plan else []
+    nxt = s.exec(select(Event).where(
+                     Event.user_email == email,
+                     Event.start >= datetime.now(), Event.kind.in_(["exam", "deadline"]))
                  .order_by(Event.start)).first()
     return {
         "mood_trend": trend,
@@ -247,10 +296,11 @@ def dashboard(s: Session = Depends(get_session)):
 
 # ---------------------------------------------------------------- PRIVACY + DEMO (P1)
 @router.delete("/me/data")
-def delete_my_data(s: Session = Depends(get_session)):
+def delete_my_data(s: Session = Depends(get_session), user: dict = Depends(current_user)):
+    email = user["email"]
     for model in (ExerciseLog, Block, Plan, Entry, Event):
-        wipe(s, model)
-    p = s.get(Profile, 1)
+        wipe(s, model, model.user_email == email)
+    p = profile_for_user(s, email)
     p.name, p.lang, p.period_tracking, p.last_period, p.cycle_len = "", "en", False, None, 28
     s.add(p); s.commit()
     return {"deleted": True}
@@ -261,20 +311,21 @@ DEMO_MOODS = ["anxiety", "sadness", "anxiety", "fear", "anxiety", "joy", "anxiet
 
 
 @router.post("/demo/seed")
-def demo_seed(s: Session = Depends(get_session)):
+def demo_seed(s: Session = Depends(get_session), user: dict = Depends(current_user)):
     """14 days of history + calendar, for the live demo."""
-    for model in (Block, Plan, Entry):
-        wipe(s, model)
+    email = user["email"]
+    for model in (ExerciseLog, Block, Plan, Entry):
+        wipe(s, model, model.user_email == email)
     n = len(DEMO_STRESS)
     for i, st in enumerate(DEMO_STRESS):
         dom = DEMO_MOODS[i % len(DEMO_MOODS)]
-        s.add(Entry(created_at=datetime.utcnow() - timedelta(days=n - 1 - i), mode="text",
+        s.add(Entry(user_email=email, created_at=utcnow() - timedelta(days=n - 1 - i), mode="text",
                     text="Demo entry", dominant=dom, emotions={dom: 0.6}, themes=["exam"],
                     stress=st, distress=False, support_message="Demo message."))
-    p = s.get(Profile, 1)
+    p = profile_for_user(s, email)
     p.name = p.name or "Demo"
     s.add(p); s.commit()
-    seed_calendar(s)
+    seed_calendar(s, user)
     return {"entries": n}
 
 
@@ -284,8 +335,11 @@ class BlockPatch(BaseModel):
 
 
 @router.patch("/plan/blocks/{block_id}")
-def patch_block(block_id: int, body: BlockPatch, s: Session = Depends(get_session)):
-    b = s.get(Block, block_id)
+def patch_block(block_id: int, body: BlockPatch, s: Session = Depends(get_session),
+                user: dict = Depends(current_user)):
+    b = s.exec(select(Block).where(
+        Block.id == block_id, Block.user_email == user["email"]
+    )).first()
     if not b:
         raise HTTPException(404, "Block not found")
     b.done = body.done
@@ -295,14 +349,21 @@ def patch_block(block_id: int, body: BlockPatch, s: Session = Depends(get_sessio
 
 @router.post("/exercises/{exercise_id}/complete")
 def complete_exercise(exercise_id: int, entry_id: int | None = None,
-                      s: Session = Depends(get_session)):
-    log = ExerciseLog(exercise_id=exercise_id, entry_id=entry_id)
+                      s: Session = Depends(get_session),
+                      user: dict = Depends(current_user)):
+    email = user["email"]
+    if entry_id is not None and not s.exec(select(Entry.id).where(
+        Entry.id == entry_id, Entry.user_email == email
+    )).first():
+        raise HTTPException(404, "Entry not found")
+    log = ExerciseLog(user_email=email, exercise_id=exercise_id, entry_id=entry_id)
     s.add(log); s.commit(); s.refresh(log)
     return {"id": log.id}
 
 
 @router.post("/calendar/import-ics")
-async def import_ics(file: UploadFile = File(...), s: Session = Depends(get_session)):
+async def import_ics(file: UploadFile = File(...), s: Session = Depends(get_session),
+                     user: dict = Depends(current_user)):
     from icalendar import Calendar
     cal = Calendar.from_ical(await file.read())
     n = 0
@@ -313,10 +374,10 @@ async def import_ics(file: UploadFile = File(...), s: Session = Depends(get_sess
             st, en = datetime.combine(st, time(9)), datetime.combine(st, time(10))
         title = str(c.get("SUMMARY", "Event"))
         low = title.lower()
-        kind = ("exam" if any(w in low for w in ("exam", "midterm", "examen", "ds"))
-                else "deadline" if any(w in low for w in ("due", "deadline", "rendu"))
+        kind = ("exam" if re.search(r"\b(exam|midterm|examen|ds)\b", low)
+                else "deadline" if re.search(r"\b(due|deadline|rendu)\b", low)
                 else "class")
-        s.add(Event(title=title, kind=kind, source="ics",
+        s.add(Event(user_email=user["email"], title=title, kind=kind, source="ics",
                     start=st.replace(tzinfo=None), end=en.replace(tzinfo=None)))
         n += 1
     s.commit()

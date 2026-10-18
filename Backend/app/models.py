@@ -1,6 +1,7 @@
 import os
 from datetime import date, datetime, timezone
 
+from pydantic import NaiveDatetime
 from sqlmodel import JSON, Column, Field, SQLModel, create_engine
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./herwin.db")
@@ -17,7 +18,8 @@ def utcnow() -> datetime:
 
 
 class Profile(SQLModel, table=True):
-    id: int = Field(default=1, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
+    user_email: str = Field(index=True, unique=True)
     name: str = ""
     lang: str = "en"
     period_tracking: bool = False
@@ -27,16 +29,18 @@ class Profile(SQLModel, table=True):
 
 class Event(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    user_email: str = Field(index=True)
     title: str
     kind: str  # exam | deadline | class | other
-    start: datetime
-    end: datetime
+    start: NaiveDatetime
+    end: NaiveDatetime
     source: str = "manual"  # seed | manual | ics
 
 
 class Entry(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=utcnow)
+    user_email: str = Field(index=True)
+    created_at: NaiveDatetime = Field(default_factory=utcnow)
     mode: str  # text | voice | qa
     text: str
     lang: str = "en"  # NEW: en | fr | ar
@@ -52,6 +56,7 @@ class Entry(SQLModel, table=True):
 
 class Plan(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    user_email: str = Field(index=True)
     day: date
     explanation: str = ""
     entry_id: int = Field(foreign_key="entry.id")
@@ -59,9 +64,10 @@ class Plan(SQLModel, table=True):
 
 class Block(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    user_email: str = Field(index=True)
     plan_id: int = Field(foreign_key="plan.id")
-    start: datetime
-    end: datetime
+    start: NaiveDatetime
+    end: NaiveDatetime
     type: str  # study | break | movement | meal | free
     title: str
     done: bool = False
@@ -69,6 +75,7 @@ class Block(SQLModel, table=True):
 
 class ExerciseLog(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    user_email: str = Field(index=True)
     exercise_id: int
     entry_id: int | None = Field(default=None, foreign_key="entry.id")
-    completed_at: datetime = Field(default_factory=utcnow)
+    completed_at: NaiveDatetime = Field(default_factory=utcnow)

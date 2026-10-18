@@ -8,6 +8,7 @@ const S = {
   nav_chat: ["Chat", "Discussion", "محادثة"],
   nav_dashboard: ["Dashboard", "Tableau de bord", "لوحة المتابعة"],
   nav_profile: ["Profile", "Profil", "الملف الشخصي"],
+  nav_logout: ["Logout", "Déconnexion", "تسجيل الخروج"],
   banner: ["Supportive, not a medical tool. If you are in danger, contact emergency services.",
     "Un soutien, pas un outil médical. En cas de danger, contactez les urgences.",
     "دعم نفسي وليس أداة طبية. في حالة الخطر اتصل بخدمات الطوارئ."],

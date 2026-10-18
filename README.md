@@ -38,14 +38,29 @@ FastAPI + SQLModel (SQLite) · React 19 + Vite · Tailwind + DaisyUI · Recharts
 **Docker (3 commands)**
 ```bash
 git clone <repo> && cd <repo>
-cp Backend/.env.example Backend/.env   # add GROQ_API_KEY and GEMINI_API_KEY
+cp Backend/.env.example Backend/.env   # add Google client ID and optional AI keys
+cp .env.example .env                   # set VITE_GOOGLE_CLIENT_ID
 docker compose up --build              # open http://localhost:3000
 ```
 **Dev**
 ```bash
-cd Backend && uv add icalendar && uv run uvicorn backend.main:app --reload --port 8000
-cd Frontend && npm i && npm run dev    # http://localhost:5173
+cp Backend/.env.example Backend/.env   # set GOOGLE_CLIENT_ID
+cp Frontend/.env.example Frontend/.env # set VITE_GOOGLE_CLIENT_ID to the same value
+# In separate terminals:
+cd Backend && uv run uvicorn backend.main:app --reload --port 8000
+cd Frontend && npm ci && npm run dev   # http://localhost:5173
 ```
+Create a Google Cloud OAuth **Web application** client and add
+`http://localhost:5173` and `http://localhost:3000` as authorized JavaScript
+origins. Set the same client ID in all three environment files above. The
+frontend ID is public and is embedded at build time; do not put a client secret
+in the frontend. For Docker, rebuild after changing the root `.env`.
+
+Every API route requires a verified Google sign-in. Profiles, journals,
+calendar events, plans, and exercise logs are scoped to the verified account.
+Pre-existing database rows are retained under an inaccessible
+`legacy-unassigned` owner rather than being exposed to the first account or
+deleted during startup.
 Then Profile → *Load sample calendar* and *Load demo history*. API docs: http://localhost:8000/docs
 
 ## Test the AI
@@ -58,6 +73,6 @@ uv run python scripts/test_ai.py --nokey         # check the canned fallback
 
 ## Limits and roadmap
 - Exercise titles are English only; the LLM messages follow the user's language.
-- No accounts or encryption at rest yet (single-user demo).
+- SQLite data is separated by Google account but is not encrypted at rest; secure the database and backups in production.
 - Emotion scores come from an LLM and have not been clinically validated.
 - Next: translated exercise library, accounts, campus counsellor hand-off, on-device models.

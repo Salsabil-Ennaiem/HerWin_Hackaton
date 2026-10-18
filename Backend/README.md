@@ -31,6 +31,11 @@ Project root
 create the main.py file under src\backend\ 
 run it with : uv run uvicorn backend.main:app --reload --port 8000
 
+Google sign-in requires `GOOGLE_CLIENT_ID` in `Backend/.env`. Use the same
+Google OAuth Web client ID as `Frontend/.env` (`VITE_GOOGLE_CLIENT_ID`).
+Register `http://localhost:5173` and `http://localhost:3000` as authorized
+JavaScript origins in Google Cloud Console.
+
 
 for the front on u'r root project npm create vite@latest Frontend -- --template react 
 frontend will be the name 

@@ -1,4 +1,4 @@
-import { clearResult, loadResult, saveResult } from "../store";
+import { clearResult, getToken, loadResult, saveResult, setToken } from "../store";
 import { mockResult } from "../test/fixtures";
 
 describe("store", () => {
@@ -20,5 +20,14 @@ describe("store", () => {
     saveResult(mockResult);
     clearResult();
     expect(loadResult()).toBeNull();
+  });
+
+  it("enregistre et relit le jeton d'authentification", () => {
+    setToken("google-id-token");
+    expect(getToken()).toBe("google-id-token");
+  });
+
+  it("retourne null quand aucun jeton n'est enregistré", () => {
+    expect(getToken()).toBeNull();
   });
 });

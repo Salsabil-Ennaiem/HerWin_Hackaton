@@ -4,6 +4,7 @@ import Results from './pages/Results.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Profile from './pages/Profile.jsx'
 import { useLang } from './i18n.jsx'
+import { logout } from './store'
 
 const links = [
   ['/', 'nav_journal'],
@@ -30,6 +31,9 @@ export default function App() {
           onChange={(e) => setLang(e.target.value)} aria-label="Language">
           <option value="en">EN</option><option value="fr">FR</option><option value="ar">AR</option>
         </select>
+        <button className="btn btn-sm btn-ghost" aria-label={t('nav_logout')} onClick={logout}>
+          ⎋
+        </button>
       </div>
       <div role="alert" className="alert alert-info alert-soft rounded-none text-sm justify-center no-print">
         {t('banner')}

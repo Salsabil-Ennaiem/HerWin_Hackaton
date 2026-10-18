@@ -10,7 +10,10 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ./Frontend
+    build:
+      context: ./Frontend
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
     container_name: frontend
     ports:
       - "3000:80"      # nginx serves the build and proxies /api to backend:8000

@@ -3,12 +3,15 @@ import { MemoryRouter } from "react-router-dom";
 import Results from "../pages/Results";
 import { saveResult } from "../store";
 import { mockResult } from "../test/fixtures";
+import { LangProvider } from "../i18n";
 
 const renderResults = () =>
   render(
-    <MemoryRouter>
-      <Results />
-    </MemoryRouter>
+    <LangProvider>
+      <MemoryRouter>
+        <Results />
+      </MemoryRouter>
+    </LangProvider>
   );
 
 describe("Results", () => {
@@ -24,7 +27,7 @@ describe("Results", () => {
     expect(screen.getByText("Take it one block at a time.")).toBeInTheDocument();
     expect(screen.getByText(/I am stressed about my exam/)).toBeInTheDocument();
     expect(screen.getByText("anxiety 62%")).toBeInTheDocument();
-    expect(screen.getByText("#exam")).toBeInTheDocument();
+    expect(screen.getByText(/Themes: exam, sleep/)).toBeInTheDocument();
     expect(screen.getByText(/Box breathing/)).toBeInTheDocument();
     expect(screen.getByText("Stretching, 10 min")).toBeInTheDocument();
     expect(screen.getByText("Focus block")).toBeInTheDocument();
@@ -40,7 +43,7 @@ describe("Results", () => {
     saveResult({ ...mockResult, distress_flag: true });
     renderResults();
     const contacts = screen.getByText(/You are not alone/i);
-    const message = screen.getByText("Your message");
+    const message = screen.getByText("Take it one block at a time.");
     expect(
       contacts.compareDocumentPosition(message) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();

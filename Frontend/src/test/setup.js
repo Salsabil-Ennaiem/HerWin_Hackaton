@@ -27,4 +27,5 @@ globalThis.Worker = class {
 
 beforeEach(() => {
   sessionStorage.clear();
+  localStorage.clear();
 });

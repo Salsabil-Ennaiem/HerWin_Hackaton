@@ -23,7 +23,9 @@ export default function Journal() {
   const [toast, setToast] = useState(null);
 
   const ready =
-    (activeTab === "text" && text.trim()) || (activeTab === "voice" && blob) || (activeTab === "qa" && Object.keys(answers).length > 0);
+    (activeTab === "text" && text.trim()) ||
+    (activeTab === "voice" && blob) ||
+    (activeTab === "qa" && getQuestions(lang).every(({ id }) => answers[id]));
 
   const submit = async () => {
     const fd = new FormData();
@@ -41,7 +43,7 @@ export default function Journal() {
     } catch (e) {
       setToast(
         activeTab === "voice"
-          ? { message: t("j_voice_fail"), actionLabel: t("j_type"), onAction: () => { setTab("text"); setToast(null); } }
+          ? { message: errMsg(e), actionLabel: t("j_type"), onAction: () => { setTab("text"); setToast(null); } }
           : { message: errMsg(e) },
       );
     } finally {

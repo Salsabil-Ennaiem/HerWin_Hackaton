@@ -1,13 +1,17 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { loadResult } from "../store";
+import { downloadIcs, errMsg } from "../api";
 import { useLang } from "../i18n.jsx";
 import StressGauge from "../components/StressGauge";
 import ExerciseCard from "../components/ExerciseCard";
 import PlanTimeline from "../components/PlanTimeline";
 import ContactsCard from "../components/ContactsCard";
+import Toast from "../components/Toast";
 
 export default function Results() {
   const { t } = useLang();
+  const [downloadError, setDownloadError] = useState("");
   const r = loadResult();
   if (!r) {
     return (
@@ -70,10 +74,13 @@ export default function Results() {
           <PlanTimeline plan={r.plan} />
           <div className="flex flex-wrap gap-2 mt-2 no-print">
             <button className="btn btn-sm btn-outline" onClick={() => window.print()}>{t("r_pdf")}</button>
-            <a className="btn btn-sm btn-outline" href="/api/plan/today.ics" download>{t("r_ics")}</a>
+            <button className="btn btn-sm btn-outline" onClick={() => downloadIcs().catch((e) => setDownloadError(errMsg(e)))}>
+              {t("r_ics")}
+            </button>
           </div>
         </div>
       </section>
+      <Toast message={downloadError} onClose={() => setDownloadError("")} />
     </div>
   );
 }

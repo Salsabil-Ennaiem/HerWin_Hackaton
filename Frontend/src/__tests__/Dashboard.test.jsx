@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import Dashboard from "../pages/Dashboard";
 import { getDashboard } from "../api";
 import { mockResult } from "../test/fixtures";
+import { LangProvider } from "../i18n";
 
 vi.mock("../api", () => ({
   getDashboard: vi.fn(),
@@ -22,25 +23,26 @@ const data = {
 describe("Dashboard", () => {
   it("affiche le spinner puis les données", async () => {
     getDashboard.mockResolvedValue(data);
-    render(<Dashboard />);
-    expect(await screen.findByText("Your dashboard")).toBeInTheDocument();
-    expect(screen.getByText(/Midterm: Algorithms/)).toBeInTheDocument();
+    render(<LangProvider><Dashboard /></LangProvider>);
+    expect(await screen.findByText("Stress, last 14 days")).toBeInTheDocument();
+    expect(screen.getByText(/Next: Midterm: Algorithms/)).toBeInTheDocument();
     expect(screen.getByText("Focus block")).toBeInTheDocument();
   });
 
   it("la bande de stress a une case par entrée, colorée selon le score", async () => {
     getDashboard.mockResolvedValue(data);
-    render(<Dashboard />);
-    const strip = await screen.findByLabelText("Stress strip");
-    expect(strip.children).toHaveLength(3);
-    expect(strip.children[0]).toHaveClass("bg-success");
-    expect(strip.children[1]).toHaveClass("bg-warning");
-    expect(strip.children[2]).toHaveClass("bg-error");
+    render(<LangProvider><Dashboard /></LangProvider>);
+    await screen.findByText("Focus block");
+    const cases = document.querySelectorAll(".bg-success, .bg-warning, .bg-error");
+    expect(cases).toHaveLength(3);
+    expect(cases[0]).toHaveClass("bg-success");
+    expect(cases[1]).toHaveClass("bg-warning");
+    expect(cases[2]).toHaveClass("bg-error");
   });
 
   it("erreur API : message d'erreur", async () => {
     getDashboard.mockRejectedValue(new Error("down"));
-    render(<Dashboard />);
-    expect(await screen.findByText(/Could not load the dashboard/i)).toBeInTheDocument();
+    render(<LangProvider><Dashboard /></LangProvider>);
+    expect(await screen.findByText("down")).toBeInTheDocument();
   });
 });
