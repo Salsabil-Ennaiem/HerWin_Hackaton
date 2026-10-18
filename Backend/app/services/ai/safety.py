@@ -4,7 +4,7 @@ SAFETY_KEYWORDS = {
     "ar": ["انتحار", "أقتل نفسي", "أريد أن أموت"]
 }
 
-def check_safety(text: str, emotion: Dict, lang: str = "en") -> Dict:
+def check_safety(text: str, emotion: dict, lang: str = "en") -> dict:
     """
     Returns:
     {

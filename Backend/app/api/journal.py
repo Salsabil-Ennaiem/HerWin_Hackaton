@@ -14,7 +14,7 @@ from app.services.ai.emotion import analyze_emotion
 from app.services.ai.safety import check_safety
 from app.services.ai.llm import support_message
 from app.services.ai.transcribe import transcribe
-from app.services.stress import academic_load, compute_stress
+from app.services.ai.stress import academic_load, compute_stress
 
 router = APIRouter(prefix="/api/journal", tags=["journal"])
 
