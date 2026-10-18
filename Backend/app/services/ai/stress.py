@@ -19,7 +19,7 @@ def academic_load(session: Session, today: datetime.date) -> float:
     return min(1.0, score / 3)   # normalize roughly
 
 
-def compute_stress(emotion: Dict, load: float, recent_stress: list[int]) -> int:
+def compute_stress(emotion: dict, load: float, recent_stress: list[int]) -> int:
     """
     stress = 100 * (0.5 * negativity + 0.3 * academic_load + 0.2 * trend_ema)
     """
