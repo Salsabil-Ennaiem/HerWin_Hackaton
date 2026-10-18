@@ -15,14 +15,6 @@ from .models import engine, utcnow, Profile, Event, Entry, Plan, Block, Exercise
 router = APIRouter(prefix="/api")
 SEED = Path(__file__).resolve().parent.parent / "seed"
 
-FALLBACK = {
-    "emotions": {"anxiety": 0.5}, "dominant": "anxiety", "valence": -0.3,
-    "themes": [], "distress": 0,
-    "support_message": "Thank you for sharing. Let's take one small step at a time.",
-    "activities": {"indoor": [], "outdoor": []},
-}
-
-
 def get_session():
     with Session(engine) as s:
         yield s
@@ -128,10 +120,7 @@ async def journal(mode: str = Form(...), text: str | None = Form(None),
     context = "; ".join(f"{e.title} ({e.kind}) in {(e.start.date() - today).days} days"
                         for e in events[:5])
 
-    try:
-        res = await ai.analyze(text, context)
-    except Exception:
-        res = dict(FALLBACK)
+    res = await ai.analyze(text, context)
 
     load_score = logic.academic_load(events, today)
     stress = int(logic.compute_stress(res.get("emotions", {}), load_score, trend))

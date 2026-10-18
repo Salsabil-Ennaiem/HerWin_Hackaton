@@ -7,8 +7,11 @@ SEED = Path(__file__).resolve().parent.parent / "seed"
 
 SAFETY_KEYWORDS = [
     "suicide", "kill myself", "want to die", "self-harm", "self harm", "end it all", "hurt myself",
+    "hopeless", "nothing matters", "everything is pointless", "life is pointless", "no hope",
     "me tuer", "veux mourir", "veux plus vivre", "me faire du mal", "en finir",
+    "désespéré", "désespérée", "tout est inutile", "plus d'espoir",
     "انتحار", "أقتل نفسي", "اقتل نفسي", "أريد أن أموت", "اريد ان اموت", "أؤذي نفسي",
+    "لا معنى للحياة", "فقدت الأمل",
 ]
 
 

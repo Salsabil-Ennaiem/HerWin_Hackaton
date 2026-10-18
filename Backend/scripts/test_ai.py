@@ -3,7 +3,7 @@
 Run from the Backend folder:
   uv run python scripts/test_ai.py                      # text tests (3 sentences x 3 languages)
   uv run python scripts/test_ai.py voice1.m4a note.webm # also transcribe these audio files
-  uv run python scripts/test_ai.py --nokey              # simulate missing keys -> canned fallback
+  uv run python scripts/test_ai.py --nokey              # simulate missing keys -> local text analysis
 """
 import asyncio
 import json
@@ -12,6 +12,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 if "--nokey" in sys.argv:
     os.environ["GROQ_API_KEY"] = ""
@@ -48,7 +51,8 @@ async def main():
         for t in texts:
             res = await ai.analyze(t)
             unsafe = logic.check_safety(t, res)
-            print(f"[{lang}] {t}\n   -> dominant={res['dominant']} valence={res['valence']} "
+            print(f"[{lang}] {t}\n   -> emotions={res['emotions']} dominant={res['dominant']} "
+                  f"valence={res['valence']} "
                   f"distress_flag={unsafe}\n   -> {res['support_message']}")
             assert res["emotions"] and res["dominant"] in res["emotions"], "bad JSON shape"
         print()

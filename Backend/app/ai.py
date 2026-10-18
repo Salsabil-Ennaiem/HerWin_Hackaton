@@ -1,5 +1,4 @@
-"""AI layer: analyze() with Groq -> Gemini -> canned fallback, and transcribe() with Groq Whisper."""
-import copy
+"""AI layer: analyze() with Groq -> Gemini -> local text fallback, and transcribe() with Groq Whisper."""
 import json
 import os
 import re
@@ -14,16 +13,77 @@ GROQ_STT = "https://api.groq.com/openai/v1/audio/transcriptions"
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
-FALLBACK = {
-    "emotions": {"anxiety": 0.5, "sadness": 0.2, "neutral": 0.3},
-    "dominant": "anxiety",
-    "valence": -0.3,
-    "themes": [],
-    "distress": False,
-    "support_message": "Thank you for sharing. Let's take one small step at a time.",
-    "activities": {
-        "indoor": ["Tidy your desk for 5 minutes", "Make a warm drink and stretch"],
-        "outdoor": ["Take a 10-minute walk", "Sit in the sun for a few minutes"],
+DEFAULT_SUPPORT_MESSAGE = "Thank you for sharing. Let's take one small step at a time."
+DEFAULT_ACTIVITIES = {
+    "indoor": ["Tidy your desk for 5 minutes", "Make a warm drink and stretch"],
+    "outdoor": ["Take a 10-minute walk", "Sit in the sun for a few minutes"],
+}
+
+EMOTION_TERMS = {
+    "anxiety": (
+        "anxious", "anxiety", "worried", "worry", "worrying", "stressed", "stress",
+        "overwhelmed", "nervous", "panic", "exam", "midterm", "deadline",
+        "can't sleep", "heart is racing",
+        "anxieux", "anxieuse", "anxiété", "inquiet", "inquiète", "inquiétude",
+        "stressé", "stressée", "examen", "échéance", "pression",
+        "قلق", "متوتر", "متوترة", "توتر", "امتحان", "ضغط",
+    ),
+    "sadness": (
+        "sad", "sadness", "lonely", "alone", "hopeless", "down",
+        "triste", "tristesse", "seul", "seule", "épuisé", "épuisée",
+        "حزين", "حزينة", "حزن", "وحيد", "وحيدة",
+    ),
+    "anger": (
+        "angry", "anger", "furious", "frustrated", "annoyed",
+        "colère", "fâché", "fâchée", "énervé", "énervée",
+        "غاضب", "غاضبة", "منزعج", "منزعجة",
+    ),
+    "fear": (
+        "afraid", "scared", "fear", "terrified",
+        "peur", "effrayé", "effrayée", "terrifié", "terrifiée",
+        "خائف", "خائفة", "خوف",
+    ),
+    "joy": (
+        "happy", "happiness", "joy", "glad", "grateful", "proud", "excited",
+        "calm", "peaceful", "fine", "good",
+        "heureux", "heureuse", "content", "contente", "joie", "reconnaissant",
+        "reconnaissante", "fier", "fière", "calme", "bien", "bonne humeur",
+        "سعيد", "سعيدة", "فرح", "فرحة", "مرتاح", "مرتاحة", "جيد", "جيدة",
+    ),
+}
+
+THEME_TERMS = {
+    "exam": ("exam", "examen", "midterm", "deadline", "امتحان"),
+    "sleep": ("sleep", "can't sleep", "insomnia", "dormir", "sommeil", "نوم"),
+    "study": ("study", "studying", "étudier", "études", "دراسة"),
+    "family": ("family", "famille", "عائلة", "أسرة"),
+    "relationships": ("friend", "friends", "family", "ami", "amie", "أصدقاء"),
+}
+
+SUPPORT_MESSAGES = {
+    "en": {
+        "anxiety": "It sounds like a lot is weighing on you. Try taking one thing at a time.",
+        "sadness": "It sounds like today feels heavy. You do not have to handle everything at once.",
+        "anger": "It sounds frustrating. A short pause may help you decide what you need next.",
+        "fear": "It sounds unsettling. Focus on one small step you can take right now.",
+        "joy": "It is good to hear something went well. Take a moment to appreciate that.",
+        "neutral": "Thank you for checking in. Notice what would help you feel supported today.",
+    },
+    "fr": {
+        "anxiety": "Tu sembles avoir beaucoup de choses en tête. Essaie de les prendre une par une.",
+        "sadness": "Cette journée semble pesante. Tu n'as pas à tout gérer d'un seul coup.",
+        "anger": "La situation semble frustrante. Une petite pause peut aider à voir ce dont tu as besoin.",
+        "fear": "Cela semble inquiétant. Concentre-toi sur une petite étape possible maintenant.",
+        "joy": "C'est agréable de savoir que quelque chose s'est bien passé. Prends le temps de l'apprécier.",
+        "neutral": "Merci pour ce partage. Demande-toi ce qui pourrait te soutenir aujourd'hui.",
+    },
+    "ar": {
+        "anxiety": "يبدو أن هناك الكثير مما يشغل بالك. حاولي التعامل مع الأمور خطوةً خطوة.",
+        "sadness": "يبدو أن هذا اليوم ثقيل عليك. ليس عليك التعامل مع كل شيء دفعة واحدة.",
+        "anger": "يبدو أن الموقف محبط. قد تساعدك استراحة قصيرة على معرفة ما تحتاجينه.",
+        "fear": "يبدو أن الأمر مقلق. ركزي على خطوة صغيرة يمكنك القيام بها الآن.",
+        "joy": "يسعدني أن بعض الأمور سارت جيدًا. خذي لحظة لتقدير ذلك.",
+        "neutral": "شكرًا لمشاركتك. فكري فيما قد يساعدك اليوم.",
     },
 }
 
@@ -73,11 +133,58 @@ def _clean(d: dict) -> dict:
         "valence": _clamp(d.get("valence", 0), -1, 1),
         "themes": [str(t) for t in (d.get("themes") or [])][:4],
         "distress": bool(d.get("distress", False)),
-        "support_message": str(d.get("support_message") or FALLBACK["support_message"]),
+        "support_message": str(d.get("support_message") or DEFAULT_SUPPORT_MESSAGE),
         "activities": {
-            "indoor": [str(a) for a in (act.get("indoor") or [])][:3],
-            "outdoor": [str(a) for a in (act.get("outdoor") or [])][:3],
+            "indoor": [str(a) for a in (act.get("indoor") or DEFAULT_ACTIVITIES["indoor"])][:3],
+            "outdoor": [str(a) for a in (act.get("outdoor") or DEFAULT_ACTIVITIES["outdoor"])][:3],
         },
+    }
+
+
+def _contains_term(text: str, term: str) -> bool:
+    if re.search(r"[\u0600-\u06ff]", term):
+        return term in text
+    return re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text) is not None
+
+
+def _local_fallback(text: str) -> dict:
+    """Provide a transparent, approximate keyword analysis when both AI providers fail."""
+    normalized = text.casefold()
+    language = "ar" if re.search(r"[\u0600-\u06ff]", normalized) else (
+        "fr" if any(_contains_term(normalized, term) for term in (
+            "je", "j'", "suis", "mon", "ma", "mes", "une", "triste", "heureux",
+            "heureuse", "inquiet", "inquiète", "examen", "journée",
+        )) else "en"
+    )
+
+    emotions = {
+        emotion: round(min(0.95, 0.2 + 0.15 * sum(
+            _contains_term(normalized, term) for term in terms
+        )), 2)
+        for emotion, terms in EMOTION_TERMS.items()
+    }
+    emotions = {emotion: score for emotion, score in emotions.items() if score > 0.2}
+    if not emotions:
+        emotions = {"neutral": 0.75}
+    else:
+        strongest_emotion = max(emotions.values())
+        emotions["neutral"] = round(max(0.05, 0.5 * (1 - strongest_emotion)), 2)
+
+    dominant = max(emotions, key=emotions.get)
+    negative = sum(emotions.get(emotion, 0) for emotion in ("anxiety", "sadness", "anger", "fear"))
+    valence = round(max(-1.0, min(1.0, emotions.get("joy", 0) - negative)), 2)
+    themes = [
+        theme for theme, terms in THEME_TERMS.items()
+        if any(_contains_term(normalized, term) for term in terms)
+    ][:4]
+    return {
+        "emotions": emotions,
+        "dominant": dominant,
+        "valence": valence,
+        "themes": themes,
+        "distress": False,
+        "support_message": SUPPORT_MESSAGES[language][dominant],
+        "activities": DEFAULT_ACTIVITIES,
     }
 
 
@@ -133,7 +240,7 @@ async def analyze(text: str, context: str = "") -> dict:
             return _clean(await fn(text, context))
         except Exception as e:
             print(f"[ai] {fn.__name__} failed: {e}")
-    return copy.deepcopy(FALLBACK)
+    return _local_fallback(text)
 
 
 async def transcribe(audio) -> str:

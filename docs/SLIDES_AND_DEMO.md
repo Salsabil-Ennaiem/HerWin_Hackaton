@@ -4,7 +4,7 @@
 - Input: text, voice (Whisper) or 5 taps, in Arabic, French or English
 - Llama 3.3 returns structured JSON: emotions, themes, distress flag, support message
 - Rule engine (explainable) turns that into: stress = 50% negativity + 30% academic load + 20% trend
-- Fallback chain: Groq → Gemini → canned message. The app never breaks.
+- Fallback chain: Groq → Gemini → a local keyword-based estimate when AI is unavailable.
 - *Visual:* diagram  Input → Whisper → LLM (JSON) → Rules → Result page
 
 ## Slide 6: Safety, privacy, ethics
@@ -36,4 +36,4 @@
 | 2:45 | Profile → Delete my data | "And she owns her data: one click wipes everything." |
 | 3:00 | End | Closing line |
 
-**If something fails:** kill the key to show the fallback ("the app still works"), or play the backup video.
+**If something fails:** remove the AI keys to demonstrate the local text-analysis fallback ("the app still works"), or play the backup video.

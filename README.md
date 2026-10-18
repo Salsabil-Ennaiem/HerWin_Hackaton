@@ -19,11 +19,13 @@ Extras: AI chat, plan export to `.ics` calendar or PDF, `.ics` calendar import, 
 | Step | Tech | Fallback |
 |---|---|---|
 | Speech to text | Groq Whisper large-v3 | UI asks the user to type |
-| Emotion, themes, support message, activities | Llama 3.3 70B (Groq) in strict JSON mode | Gemini Flash, then a canned response |
+| Emotion, themes, support message, activities | Llama 3.3 70B (Groq) in strict JSON mode | Gemini Flash, then a local keyword-based estimate |
 | Stress score, plan, exercise choice | Deterministic rules (`logic.py`), explainable and offline | n/a |
 | Chat | Same LLM chain with a supportive, non-diagnostic system prompt | Canned reply |
 
-The app never crashes without an AI key: every LLM call has a fallback chain.
+The app works without an AI key: if both AI providers are unavailable, a simple
+keyword-based estimate replaces the previous fixed example response. This
+offline estimate is approximate and is not a clinical assessment.
 
 ## Safety and privacy
 - Distress is detected by **keyword lists (EN/FR/AR) AND the LLM flag**. Either one switches the UI to a **contacts card first**; the AI chat also bypasses the LLM and shows contacts.
@@ -65,7 +67,7 @@ use; add real authentication before exposing the app publicly.
 cd Backend
 uv run python scripts/test_ai.py                 # 9 sentences AR/FR/EN
 uv run python scripts/test_ai.py note.m4a        # + transcribe real voice notes
-uv run python scripts/test_ai.py --nokey         # check the canned fallback
+uv run python scripts/test_ai.py --nokey         # check the local text-analysis fallback
 ```
 
 ## Limits and roadmap
