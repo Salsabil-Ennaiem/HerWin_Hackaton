@@ -36,7 +36,12 @@ def academic_load(events, today: date) -> float:
 
 
 def compute_stress(emotions: dict, load: float, trend: list) -> int:
-    """stress = 100 * (0.5*negativity + 0.3*academic_load + 0.2*trend). trend is oldest -> newest."""
+    """Return an experimental app heuristic (not a validated stress measurement).
+
+    The weights are product choices for adapting suggestions, not research-derived
+    coefficients. The 0-100 output must not be interpreted as a clinical scale.
+    trend is oldest -> newest.
+    """
     neg = sum(emotions.get(k, 0) for k in ("anxiety", "sadness", "anger", "fear")) - 0.5 * emotions.get("joy", 0)
     neg = max(0.0, min(1.0, neg))
     if trend:

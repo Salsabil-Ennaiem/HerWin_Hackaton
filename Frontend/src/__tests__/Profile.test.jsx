@@ -37,8 +37,9 @@ beforeEach(() => {
 });
 
 const ready = async () => {
-  render(<LangProvider><Profile /></LangProvider>);
+  const view = render(<LangProvider><Profile /></LangProvider>);
   await screen.findByRole("heading", { name: "Profile" });
+  return view;
 };
 
 describe("Profile", () => {
@@ -46,6 +47,34 @@ describe("Profile", () => {
     await ready();
     expect(screen.getByRole("heading", { name: "Calendar" })).toBeInTheDocument();
     expect(screen.getByRole("combobox")).toHaveValue("en");
+  });
+
+  it("recharge le profil enregistré après remontage", async () => {
+    const user = userEvent.setup();
+    const { unmount } = await ready();
+    await user.type(screen.getByRole("textbox"), "Salsabil");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+    await waitFor(() => expect(savedProfile.name).toBe("Salsabil"));
+
+    unmount();
+    await ready();
+    expect(screen.getByRole("textbox")).toHaveValue("Salsabil");
+  });
+
+  it("permet de réessayer si le profil ne peut pas être chargé", async () => {
+    api.getProfile.mockRejectedValueOnce(new Error("Service unavailable"));
+    render(<LangProvider><Profile /></LangProvider>);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Service unavailable");
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /try again/i }));
+    expect(await screen.findByRole("heading", { name: "Profile" })).toBeInTheDocument();
+  });
+
+  it("affiche les erreurs de chargement du calendrier", async () => {
+    api.getEvents.mockRejectedValueOnce(new Error("Calendar unavailable"));
+    await ready();
+    expect(await screen.findByText("Calendar unavailable")).toBeInTheDocument();
   });
 
   it("activer le suivi du cycle appelle updateProfile avec le bon corps", async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { deleteMyData, demoSeed, errMsg, getEvents, getProfile, importIcs, seedCalendar, updateProfile } from "../api";
 import { clearResult } from "../store";
 import { useLang } from "../i18n.jsx";
@@ -10,15 +10,26 @@ export default function Profile() {
   const [events, setEvents] = useState([]);
   const [msg, setMsg] = useState("");
   const [toast, setToast] = useState(null);
+  const [profileError, setProfileError] = useState("");
 
-  const load = () => {
-    getProfile().then((x) => { setP(x); if (x.lang) setLang(x.lang); }).catch((e) => setToast({ message: errMsg(e) }));
-    getEvents().then(setEvents).catch(() => {});
+  const load = useCallback(async () => {
+    const profileRequest = getProfile()
+      .then((x) => { setP(x); if (x.lang) setLang(x.lang); })
+      .catch((e) => setProfileError(errMsg(e)));
+    const eventsRequest = getEvents()
+      .then(setEvents)
+      .catch((e) => setToast({ message: errMsg(e) }));
+    await Promise.all([profileRequest, eventsRequest]);
+  }, [setLang]);
+  useEffect(() => { load(); }, [load]);
+
+  const retryLoad = () => {
+    setProfileError("");
+    load();
   };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(load, []);
 
   const run = async (fn, ok) => {
+    setProfileError("");
     try { await fn(); setMsg(ok); load(); } catch (e) { setToast({ message: errMsg(e) }); }
   };
 
@@ -32,12 +43,28 @@ export default function Profile() {
     run(async () => { await deleteMyData(); clearResult(); }, t("pr_deleted"));
   };
 
-  if (!p) return <div className="text-center py-10"><span className="loading loading-spinner loading-lg" /></div>;
+  if (!p) {
+    if (!profileError) return <div className="text-center py-10"><span className="loading loading-spinner loading-lg" /></div>;
+    return (
+      <div className="card bg-base-100 shadow-sm">
+        <div className="card-body items-center text-center">
+          <p role="alert" className="text-error">{profileError}</p>
+          <button className="btn btn-outline btn-sm" onClick={retryLoad}>{t("d_retry")}</button>
+        </div>
+      </div>
+    );
+  }
   const set = (k) => (e) => setP({ ...p, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   return (
     <div className="space-y-4">
       {msg && <div className="alert alert-success alert-soft">{msg}</div>}
+      {profileError && (
+        <div className="alert alert-error" role="alert">
+          <span>{profileError}</span>
+          <button className="btn btn-sm btn-outline" onClick={retryLoad}>{t("d_retry")}</button>
+        </div>
+      )}
 
       <div className="card bg-base-100 shadow-sm"><div className="card-body">
         <h2 className="card-title">{t("pr_title")}</h2>

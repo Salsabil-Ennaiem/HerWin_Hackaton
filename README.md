@@ -7,11 +7,11 @@ Students, especially during exam periods, carry stress they rarely express and r
 
 ## Solution
 The student checks in by **writing, speaking (Arabic, French, English) or tapping 5 questions**. In seconds HERwin returns:
-- the detected mood and a **stress score (0-100)** that combines emotion, upcoming exams/deadlines and recent trend,
+- detected mood and an **experimental app-generated indicator (0-100)** combining estimated emotion, upcoming exams/deadlines and recent entries; it is not a validated or clinical stress measurement,
 - a short, kind support message in the student's language,
 - 3 targeted micro-exercises (breathing, grounding, movement…),
 - a **realistic plan for today** built around classes and exams (lighter on high-stress days or, if opted in, cycle-sensitive days),
-- a **dashboard** with the 14-day stress trend and a countdown to the next exam.
+- a **dashboard** with the 14-day trend of this experimental indicator and a countdown to the next exam.
 
 Extras: AI chat, plan export to `.ics` calendar or PDF, `.ics` calendar import, EN/FR/AR interface (RTL for Arabic), one-click "Delete my data".
 
@@ -23,6 +23,12 @@ Extras: AI chat, plan export to `.ics` calendar or PDF, `.ics` calendar import, 
 | Stress score, plan, exercise choice | Deterministic rules (`logic.py`), explainable and offline | n/a |
 | Chat | Same LLM chain with a supportive, non-diagnostic system prompt | Canned reply |
 
+The indicator weights and thresholds are heuristic product choices, not
+research-validated. Emotion estimates may also be inaccurate, especially when
+the local keyword fallback is used. Do not interpret the score as a real
+measurement of stress or as clinical advice; it only drives lightweight app
+suggestions.
+
 The app works without an AI key: if both AI providers are unavailable, a simple
 keyword-based estimate replaces the previous fixed example response. This
 offline estimate is approximate and is not a clinical assessment.
@@ -30,7 +36,7 @@ offline estimate is approximate and is not a clinical assessment.
 ## Safety and privacy
 - Distress is detected by **keyword lists (EN/FR/AR) AND the LLM flag**. Either one switches the UI to a **contacts card first**; the AI chat also bypasses the LLM and shows contacts.
 - The AI is prompted never to diagnose or give medical advice.
-- Data stays in a local SQLite file. Cycle tracking is **opt-in**. **Delete my data** wipes everything.
+- Data is stored in SQLite. Docker Compose keeps it in a named volume so profiles and entries survive container rebuilds. Cycle tracking is **opt-in**. **Delete my data** wipes everything.
 - Journal text is sent to Groq/Gemini for analysis; mention this to users in a production version.
 
 ## Tech stack

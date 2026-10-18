@@ -25,10 +25,10 @@ describe("Dashboard", () => {
   it("affiche le spinner puis les données", async () => {
     getDashboard.mockResolvedValue(data);
     render(<MemoryRouter><LangProvider><Dashboard /></LangProvider></MemoryRouter>);
-    expect(await screen.findByText("Stress, last 14 days")).toBeInTheDocument();
+    expect(await screen.findByText("Experimental wellbeing indicator · 14 days")).toBeInTheDocument();
     expect(screen.getByText("Midterm: Algorithms")).toBeInTheDocument();
     expect(screen.getByText("85")).toBeInTheDocument();
-    expect(screen.getByText(/30 up since previous check-in/)).toBeInTheDocument();
+    expect(screen.getByText(/30 higher than previous estimate/)).toBeInTheDocument();
     expect(screen.getByText("Focus block")).toBeInTheDocument();
   });
 

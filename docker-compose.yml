@@ -7,6 +7,9 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////data/herwin.db}
+    volumes:
+      - herwin_data:/data
     restart: unless-stopped
 
   frontend:
@@ -18,3 +21,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  herwin_data:
