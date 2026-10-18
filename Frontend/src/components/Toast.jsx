@@ -1,13 +1,20 @@
-export default function Toast({ message, actionLabel, onAction, onClose }) {
+export default function Toast({ message, onClose, actionLabel, onAction }) {
   if (!message) return null;
+
   return (
-    <div className="toast toast-top toast-center z-50">
-      <div className="alert alert-error">
+    <div className="toast toast-bottom toast-center">
+      <div className="alert alert-warning">
         <span>{message}</span>
         {actionLabel && (
-          <button className="btn btn-sm" onClick={onAction}>{actionLabel}</button>
+          <button className="btn btn-sm btn-outline" onClick={onAction}>
+            {actionLabel}
+          </button>
         )}
-        <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+        {onClose && (
+          <button className="btn btn-xs btn-ghost" onClick={onClose}>
+            ✕
+          </button>
+        )}
       </div>
     </div>
   );
