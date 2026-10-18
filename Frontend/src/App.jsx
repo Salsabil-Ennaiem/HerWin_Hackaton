@@ -1,8 +1,10 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, NavLink } from "react-router-dom";
-import Journal from "./pages/Journal";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import Results from "./pages/Results";
+
+const Journal = lazy(() => import("./pages/Journal"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Results = lazy(() => import("./pages/Results"));
 
 const navItems = [
   { label: "Journal", path: "/" },
@@ -37,12 +39,14 @@ export function AppRouter() {
       </nav>
 
       <main className="mx-auto max-w-4xl p-4">
-        <Routes>
-          <Route path="/" element={<Journal />} />
-          <Route path="/results" element={<Results />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
+        <Suspense fallback={<p role="status">Loading page...</p>}>
+          <Routes>
+            <Route path="/" element={<Journal />} />
+            <Route path="/results" element={<Results />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );
