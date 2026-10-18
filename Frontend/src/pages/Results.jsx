@@ -22,6 +22,7 @@ export default function Results() {
     );
   }
   const emotions = Object.entries(r.mood.emotions || {}).sort((a, b) => b[1] - a[1]).filter(([, v]) => v > 0.05);
+  const emotionLabel = (key) => t(`r_emotion_${key}`) === `r_emotion_${key}` ? key : t(`r_emotion_${key}`);
 
   return (
     <div className="space-y-4">
@@ -33,10 +34,11 @@ export default function Results() {
           <div className="flex flex-wrap justify-center gap-2 mt-2">
             {emotions.map(([k, v]) => (
               <span key={k} className={`badge ${k === r.mood.dominant ? "badge-primary" : "badge-outline"}`}>
-                {k} {Math.round(v * 100)}%
+              {emotionLabel(k)} {Math.round(v * 100)}%
               </span>
             ))}
           </div>
+          {emotions.length > 0 && <p className="text-xs opacity-60">{t("r_emotion_note")}</p>}
           {r.mood.themes?.length > 0 && (
             <div className="text-xs opacity-60">{t("r_themes")}: {r.mood.themes.join(", ")}</div>
           )}

@@ -54,8 +54,11 @@ export default function Journal() {
   return (
     <div className="card bg-base-100 shadow-sm">
       <div className="card-body">
-        <h1 className="card-title text-2xl">{t(activeTab === "chat" ? "ch_title" : "j_title")}</h1>
-        <div role="tablist" className="tabs tabs-box w-fit">
+        <div className="space-y-1">
+          <h1 className="card-title text-2xl">{t(activeTab === "chat" ? "ch_title" : "j_title")}</h1>
+          {activeTab !== "chat" && <p className="text-sm opacity-70">{t("j_hint")}</p>}
+        </div>
+        <div role="tablist" className="tabs tabs-box w-fit max-w-full flex-nowrap overflow-x-auto">
           {TABS.map(([k, key]) => (
             <button key={k} role="tab" className={`tab ${activeTab === k ? "tab-active" : ""}`} onClick={() => {
               if (k !== "chat") setTab(k);
@@ -69,8 +72,15 @@ export default function Journal() {
         <div className="mt-3">
           {activeTab === "chat" && <ChatPanel />}
           {activeTab === "text" && (
-            <textarea className="textarea textarea-bordered w-full h-44" value={text}
-              onChange={(e) => setText(e.target.value)} placeholder={t("j_placeholder")} />
+            <div className="space-y-2">
+              <textarea className="textarea textarea-bordered w-full min-h-44 resize-y focus:outline-primary"
+                value={text} onChange={(e) => setText(e.target.value)} placeholder={t("j_placeholder")}
+                aria-label={t("j_placeholder")} />
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs opacity-70">
+                <span>{t("j_text_tip")}</span>
+                <span>{text.length} {t("j_chars")}</span>
+              </div>
+            </div>
           )}
           {activeTab === "voice" && <VoiceRecorder onRecorded={setBlob} />}
           {activeTab === "qa" && <QAForm answers={answers} setAnswers={setAnswers} />}

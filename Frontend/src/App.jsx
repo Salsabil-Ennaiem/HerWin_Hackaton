@@ -15,7 +15,7 @@ export default function App() {
   const { t, lang, setLang } = useLang()
   return (
     <div className="min-h-screen bg-base-200">
-      <div className="navbar bg-base-100 shadow-sm px-4 no-print flex-wrap gap-2">
+      <div className="navbar sticky top-0 z-20 bg-base-100/95 shadow-sm px-4 no-print flex-wrap gap-2 backdrop-blur">
         <span className="text-xl font-bold flex-1">🌸 HERwin</span>
         <ul className="menu menu-horizontal gap-1">
           {links.map(([to, key]) => (

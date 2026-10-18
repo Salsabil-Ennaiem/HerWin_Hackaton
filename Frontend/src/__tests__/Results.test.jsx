@@ -26,7 +26,7 @@ describe("Results", () => {
     renderResults();
     expect(screen.getByText("Take it one block at a time.")).toBeInTheDocument();
     expect(screen.getByText(/I am stressed about my exam/)).toBeInTheDocument();
-    expect(screen.getByText("anxiety 62%")).toBeInTheDocument();
+    expect(screen.getByText("Anxiety 62%")).toBeInTheDocument();
     expect(screen.getByText(/Themes: exam, sleep/)).toBeInTheDocument();
     expect(screen.getByText(/Box breathing/)).toBeInTheDocument();
     expect(screen.getByText("Stretching, 10 min")).toBeInTheDocument();

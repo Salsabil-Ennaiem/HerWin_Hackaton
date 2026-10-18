@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import Dashboard from "../pages/Dashboard";
 import { getDashboard } from "../api";
 import { mockResult } from "../test/fixtures";
@@ -23,15 +24,17 @@ const data = {
 describe("Dashboard", () => {
   it("affiche le spinner puis les données", async () => {
     getDashboard.mockResolvedValue(data);
-    render(<LangProvider><Dashboard /></LangProvider>);
+    render(<MemoryRouter><LangProvider><Dashboard /></LangProvider></MemoryRouter>);
     expect(await screen.findByText("Stress, last 14 days")).toBeInTheDocument();
-    expect(screen.getByText(/Next: Midterm: Algorithms/)).toBeInTheDocument();
+    expect(screen.getByText("Midterm: Algorithms")).toBeInTheDocument();
+    expect(screen.getByText("85")).toBeInTheDocument();
+    expect(screen.getByText(/30 up since previous check-in/)).toBeInTheDocument();
     expect(screen.getByText("Focus block")).toBeInTheDocument();
   });
 
   it("la bande de stress a une case par entrée, colorée selon le score", async () => {
     getDashboard.mockResolvedValue(data);
-    render(<LangProvider><Dashboard /></LangProvider>);
+    render(<MemoryRouter><LangProvider><Dashboard /></LangProvider></MemoryRouter>);
     await screen.findByText("Focus block");
     const cases = document.querySelectorAll(".bg-success, .bg-warning, .bg-error");
     expect(cases).toHaveLength(3);
@@ -42,7 +45,14 @@ describe("Dashboard", () => {
 
   it("erreur API : message d'erreur", async () => {
     getDashboard.mockRejectedValue(new Error("down"));
-    render(<LangProvider><Dashboard /></LangProvider>);
+    render(<MemoryRouter><LangProvider><Dashboard /></LangProvider></MemoryRouter>);
     expect(await screen.findByText("down")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+
+  it("invite à créer une entrée quand il n'y a aucun historique", async () => {
+    getDashboard.mockResolvedValue({ ...data, mood_trend: [], stress_strip: [] });
+    render(<MemoryRouter><LangProvider><Dashboard /></LangProvider></MemoryRouter>);
+    expect(await screen.findByRole("link", { name: "Write your first check-in" })).toHaveAttribute("href", "/");
   });
 });
