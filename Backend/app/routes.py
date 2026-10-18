@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -223,7 +223,7 @@ def put_profile(body: ProfileIn, s: Session = Depends(get_session)):
 # ---------------------------------------------------------------- DASHBOARD (P1)
 @router.get("/dashboard")
 def dashboard(s: Session = Depends(get_session)):
-    now, today = datetime.utcnow(), date.today()
+    now, today = datetime.now(timezone.utc), date.today()
     rows = s.exec(select(Entry).where(Entry.created_at >= now - timedelta(days=14))
                   .order_by(Entry.created_at)).all()
     by_day = {}

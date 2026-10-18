@@ -3,16 +3,20 @@ import Dashboard from "../pages/Dashboard";
 import { getDashboard } from "../api";
 import { mockResult } from "../test/fixtures";
 
-vi.mock("../api", () => ({ getDashboard: vi.fn() }));
+vi.mock("../api", () => ({
+  getDashboard: vi.fn(),
+  errMsg: (e) => e?.response?.data?.detail || e?.message || "Something went wrong",
+}));
 
 const data = {
-  entries: [
+  mood_trend: [
     { date: "2026-10-16", stress: 30, dominant: "joy" },
     { date: "2026-10-17", stress: 55, dominant: "anxiety" },
     { date: "2026-10-18", stress: 85, dominant: "anxiety" },
   ],
+  stress_strip: [30, 55, 85],
   today_plan: mockResult.plan,
-  upcoming: [{ title: "Midterm: Algorithms", kind: "exam", start: "2026-10-21T09:00:00" }],
+  next_event: { title: "Midterm: Algorithms", days_left: 3 },
 };
 
 describe("Dashboard", () => {
