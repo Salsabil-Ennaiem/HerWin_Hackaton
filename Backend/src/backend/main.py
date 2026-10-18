@@ -16,11 +16,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-'''
+
 @app.get("/")
 def read_root():
     return {"message": "Hello from FastAPI Backend!"}
-'''
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
