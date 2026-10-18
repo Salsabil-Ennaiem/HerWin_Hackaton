@@ -1,50 +1,53 @@
-# backend/app/models.py  (add these classes)
-
 from datetime import datetime, date
-from typing import Optional, List, Dict, Any
-from sqlmodel import SQLModel, Field, Column, JSON, Relationship
-from sqlalchemy import Column as SAColumn
+from sqlmodel import SQLModel, Field, Column, JSON, create_engine
+
+engine = create_engine("sqlite:///herwin.db", connect_args={"check_same_thread": False})
+
+class Profile(SQLModel, table=True):
+    id: int = Field(default=1, primary_key=True)
+    name: str = ""
+    lang: str = "en"
+    period_tracking: bool = False
+    last_period: date | None = None
+    cycle_len: int = 28
+
+class Event(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    title: str
+    kind: str                      # exam | deadline | class | other
+    start: datetime
+    end: datetime
+    source: str = "manual"         # seed | manual | ics
 
 class Entry(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    mode: str                          # "text" | "voice" | "qa"
-    text: str                          # original text or transcript
-    lang: str = "en"                   # en | fr | ar
-    dominant: str                      # e.g. "anxiety"
-    emotions: Dict[str, float] = Field(default_factory=dict, sa_column=Column(JSON))
-    themes: List[str] = Field(default_factory=list, sa_column=Column(JSON))
-    valence: float = 0.0               # -1 .. 1
-    stress: int = 0                    # 0..100
+    mode: str                      # text | voice | qa
+    text: str
+    dominant: str
+    emotions: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    themes: list = Field(default_factory=list, sa_column=Column(JSON))
+    stress: int
     distress: bool = False
     support_message: str = ""
-    safety_message: Optional[str] = None
-
-    # relationships (optional but useful later)
-    # plans: List["Plan"] = Relationship(back_populates="entry")
-    # exercise_logs: List["ExerciseLog"] = Relationship(back_populates="entry")
-
 
 class Plan(SQLModel, table=True):
-    """Will be filled by the schedule person later. Keep the FK ready."""
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     day: date
     explanation: str = ""
     entry_id: int = Field(foreign_key="entry.id")
 
-
 class Block(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     plan_id: int = Field(foreign_key="plan.id")
     start: datetime
     end: datetime
-    type: str                          # study | break | movement | meal | free | exercise
+    type: str                      # study | break | movement | meal | free
     title: str
     done: bool = False
 
-
 class ExerciseLog(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    exercise_id: int                   # points to exercises.json (not a real FK)
-    entry_id: Optional[int] = Field(default=None, foreign_key="entry.id")
+    id: int | None = Field(default=None, primary_key=True)
+    exercise_id: int
+    entry_id: int | None = Field(default=None, foreign_key="entry.id")
     completed_at: datetime = Field(default_factory=datetime.utcnow)
